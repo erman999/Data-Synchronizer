@@ -54,7 +54,7 @@ let promisePool = {};
 
 let server = {
   configs: {},
-  clients: {},
+  clients: [],
   database: {},
   socket: {}
 };
@@ -180,6 +180,14 @@ function connectionChecker() {
 
 
 
+async function saveClientsFile(data) {
+  const filePath = path.join(__dirname, 'configs', 'clients.json');
+  await fs.promises.writeFile(filePath, JSON.stringify(data));
+  console.log("File [clients.json] saved.");
+  return true;
+}
+
+
 io.on('connection', (socket) => {
   console.log('Connected socket.id:', socket.id);
 
@@ -187,9 +195,21 @@ io.on('connection', (socket) => {
     console.log("Disconnect socket.id:", socket.id);
   });
 
-  socket.on("greeting", (arg) => {
-    console.log("### Client: ", arg);
-    mainWindow.webContents.send('messageFromMain', arg);
+  socket.on("greeting", (client) => {
+    console.log("Connected client: ", client);
+    mainWindow.webContents.send('messageFromMain', client);
+    // Check new client in registered clients
+    let clientIndex = server.clients.findIndex((registeredClient) => registeredClient.machineId === client.machineId);
+    console.log("clientIndex", clientIndex);
+    // If this client is not exist in registered clients
+    if (clientIndex === -1) {
+      // Add this client to clients
+      server.clients.push(client);
+      // Save clients file
+      saveClientsFile(server.clients);
+      // Tell user register/setup required.
+    }
+
   });
 
 });

@@ -4,5 +4,5 @@ window.ipcRender.receive('messageFromMain', (message) => {
 });
 
 setTimeout(() => {
-  window.ipcRender.send('messageToMain', 'Hello from renderer !!!');
+  window.ipcRender.send('messageToMain', 'Renderer ready.');
 }, 2000);

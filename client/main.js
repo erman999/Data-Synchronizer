@@ -72,18 +72,12 @@ async function startApp() {
 
   // Try to connect server
   const isServerConnected = await connectToServer();
-  client.socket = isServerConnected;
 
   // Add socket events
-  socketEvents();
-
-  // Display client status
-  console.log(client);
-  mainWindow.webContents.send('messageFromMain', client);
+  addSocketListeners();
 
   // Start database connection checker loop
   connectionChecker();
-
 
 }
 
@@ -136,31 +130,31 @@ async function connectToServer() {
 
     socket.on("connect", () => {
       console.log("Socket [connect] -> socket.connected: ", socket.connected);
-      if (client.socket.hasOwnProperty('connection')) {
-        client.socket.connection = true;
-        mainWindow.webContents.send('messageFromMain', client);
-      }
-      resolve({connection: true});
+      client.socket.connection = true;
+      client.socket.event = "connect";
+      mainWindow.webContents.send('messageFromMain', client);
+      socket.emit("greeting", client);
+      resolve();
     });
 
 
     socket.on("disconnect", () => {
       console.log("Socket [disconnect] -> socket.connected: ", socket.connected);
-      if (client.socket.hasOwnProperty('connection')) {
-        client.socket.connection = false;
-        mainWindow.webContents.send('messageFromMain', client);
-      }
-      resolve({connection: false});
+      client.socket.connection = false;
+      client.socket.event = "disconnect";
+      mainWindow.webContents.send('messageFromMain', client);
+      resolve();
     });
 
 
     socket.on("connect_error", () => {
       console.log("Socket [connect_error] -> socket.connected: ", socket.connected);
-      if (client.socket.hasOwnProperty('connection') && client.socket.connection !== false) {
+      if (client.socket.connection !== false) {
         client.socket.connection = false;
+        client.socket.event = "connect_error";
         mainWindow.webContents.send('messageFromMain', client);
       }
-      resolve({connection: false});
+      resolve();
     });
 
 
@@ -203,10 +197,8 @@ function connectionChecker() {
 }
 
 
-function socketEvents() {
+function addSocketListeners() {
 
-
-  socket.emit("greeting", client);
   socket.on("greeting", (arg) => {
     console.log(arg);
   });
