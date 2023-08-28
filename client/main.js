@@ -48,10 +48,11 @@ const mysql = require('mysql2');
 const { io } = require("socket.io-client");
 const nodeMachineId = require('node-machine-id');
 
-
+let socket = {};
 let promisePool = {};
 
 let client = {
+  machineId: nodeMachineId.machineIdSync({original: true}),
   configs: {},
   database: {},
   socket: {}
@@ -73,6 +74,8 @@ async function startApp() {
   const isServerConnected = await connectToServer();
   client.socket = isServerConnected;
 
+  // Add socket events
+  socketEvents();
 
   // Display client status
   console.log(client);
@@ -80,6 +83,8 @@ async function startApp() {
 
   // Start database connection checker loop
   connectionChecker();
+
+
 }
 
 
@@ -131,18 +136,30 @@ async function connectToServer() {
 
     socket.on("connect", () => {
       console.log("Socket [connect] -> socket.connected: ", socket.connected);
+      if (client.socket.hasOwnProperty('connection')) {
+        client.socket.connection = true;
+        mainWindow.webContents.send('messageFromMain', client);
+      }
       resolve({connection: true});
     });
 
 
     socket.on("disconnect", () => {
       console.log("Socket [disconnect] -> socket.connected: ", socket.connected);
+      if (client.socket.hasOwnProperty('connection')) {
+        client.socket.connection = false;
+        mainWindow.webContents.send('messageFromMain', client);
+      }
       resolve({connection: false});
     });
 
 
     socket.on("connect_error", () => {
       console.log("Socket [connect_error] -> socket.connected: ", socket.connected);
+      if (client.socket.hasOwnProperty('connection') && client.socket.connection !== false) {
+        client.socket.connection = false;
+        mainWindow.webContents.send('messageFromMain', client);
+      }
       resolve({connection: false});
     });
 
@@ -170,15 +187,28 @@ function connectionChecker() {
     if (client.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       client.database = isDatabaseConnected;
-      mainWindow.webContents.send('messageFromMain', client);
+      if (client.database.connection === true) mainWindow.webContents.send('messageFromMain', client);
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
       if (isDatabaseStillConnected.result === false) {
-        client.database.connection = false;
-        mainWindow.webContents.send('messageFromMain', client);
+        if (client.database.connection !== isDatabaseStillConnected.result) {
+          client.database.connection = false;
+          mainWindow.webContents.send('messageFromMain', client);
+        }
       }
     }
 
   }, 15*1000);
+}
+
+
+function socketEvents() {
+
+
+  socket.emit("greeting", client);
+  socket.on("greeting", (arg) => {
+    console.log(arg);
+  });
+
 }

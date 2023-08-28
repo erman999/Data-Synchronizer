@@ -54,6 +54,7 @@ let promisePool = {};
 
 let server = {
   configs: {},
+  clients: {},
   database: {},
   socket: {}
 };
@@ -65,6 +66,10 @@ async function startApp() {
   // Read config file
   const configs = await readConfigFile(null, 'configs.json');
   server.configs = configs;
+
+  // Read clients file
+  const clients = await readConfigFile(null, 'clients.json');
+  server.clients = clients;
 
   // Try to connect database
   const isDatabaseConnected = await connectToDatabase();
@@ -80,19 +85,14 @@ async function startApp() {
     mainWindow.webContents.send('messageFromMain', server);
   });
 
-
   // Start database connection checker loop
   connectionChecker();
 }
 
 
-
-
 ipcMain.on('messageToMain', (event, message) => {
   console.log(message);
 });
-
-
 
 
 // Read file in 'configs' folder
@@ -163,15 +163,33 @@ function connectionChecker() {
     if (server.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       server.database = isDatabaseConnected;
-      mainWindow.webContents.send('messageFromMain', server);
+      if (server.database.connection === true) mainWindow.webContents.send('messageFromMain', server);
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
       if (isDatabaseStillConnected.result === false) {
-        server.database.connection = false;
-        mainWindow.webContents.send('messageFromMain', server);
+        if (server.database.connection !== isDatabaseStillConnected.result) {
+          server.database.connection = false;
+          mainWindow.webContents.send('messageFromMain', server);
+        }
       }
     }
 
   }, 15*1000);
 }
+
+
+
+io.on('connection', (socket) => {
+  console.log('Connected socket.id:', socket.id);
+
+  socket.on("disconnect", (reason) => {
+    console.log("Disconnect socket.id:", socket.id);
+  });
+
+  socket.on("greeting", (arg) => {
+    console.log("### Client: ", arg);
+    mainWindow.webContents.send('messageFromMain', arg);
+  });
+
+});
