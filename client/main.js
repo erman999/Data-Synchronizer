@@ -6,8 +6,10 @@ let mainWindow;
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 450,
+    autoHideMenuBar: true,
+    resizable: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -132,7 +134,7 @@ async function connectToServer() {
       console.log("Socket [connect] -> socket.connected: ", socket.connected);
       client.socket.connection = true;
       client.socket.event = "connect";
-      mainWindow.webContents.send('messageFromMain', client);
+      mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
       socket.emit("greeting", client);
       resolve();
     });
@@ -142,7 +144,7 @@ async function connectToServer() {
       console.log("Socket [disconnect] -> socket.connected: ", socket.connected);
       client.socket.connection = false;
       client.socket.event = "disconnect";
-      mainWindow.webContents.send('messageFromMain', client);
+      mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
       resolve();
     });
 
@@ -152,7 +154,7 @@ async function connectToServer() {
       if (client.socket.connection !== false) {
         client.socket.connection = false;
         client.socket.event = "connect_error";
-        mainWindow.webContents.send('messageFromMain', client);
+        mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
       }
       resolve();
     });
@@ -181,14 +183,14 @@ function connectionChecker() {
     if (client.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       client.database = isDatabaseConnected;
-      if (client.database.connection === true) mainWindow.webContents.send('messageFromMain', client);
+      if (client.database.connection === true) mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
       if (isDatabaseStillConnected.result === false) {
         if (client.database.connection !== isDatabaseStillConnected.result) {
           client.database.connection = false;
-          mainWindow.webContents.send('messageFromMain', client);
+          mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
         }
       }
     }

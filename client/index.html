@@ -4,15 +4,68 @@
   <meta charset="UTF-8">
   <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-  <link href="./styles.css" rel="stylesheet">
-  <title>Hello World!</title>
+  <link href="./css/bulma.min.css" rel="stylesheet">
+  <link href="./css/styles.css" rel="stylesheet">
+  <title>Data Transfer Network: Client</title>
 </head>
 <body>
-  <h1>Client</h1>
 
-  
+  <div class="container p-4">
+    <div class="content">
+      <h3 class="mt-1 mb-5">Data Transfer Network: Client</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th colspan="2">Client Info</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Machine ID</td>
+            <td>
+              <span id="machineId" class="tag is-black">#N/A</span>
+            </td>
+          </tr>
+          <tr>
+            <td>Server IP</td>
+            <td>
+              <span id="serverIp" class="tag is-black">#N/A</span>
+            </td>
+          </tr>
+          <tr>
+            <td>Server Port</td>
+            <td>
+              <span id="port" class="tag is-black">#N/A</span>
+            </td>
+          </tr>
+
+          <tr>
+            <td colspan="2" class="border-0"></td>
+          </tr>
+
+          <tr>
+            <th colspan="2">Connection Status</th>
+          </tr>
+          <tr>
+            <td>Server</td>
+            <td>
+              <span id="server-connection" class="tag is-black">#N/A</span>
+            </td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>
+              <span id="database-connection" class="tag is-black">#N/A</span>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
   <script src="./renderer.js"></script>
-
-
 </body>
 </html>
