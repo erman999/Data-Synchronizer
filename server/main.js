@@ -92,7 +92,7 @@ async function startApp() {
     server.socket.port = server.configs.port;
     console.log(server);
     console.log(`Server listening on port ${server.configs.port}`);
-    mainWindow.webContents.send('messageFromMain', {channel: 'update', server});
+    mainWindow.webContents.send('messageFromMain', {channel: 'start', server});
   });
 
   // Start database connection checker loop
@@ -203,13 +203,23 @@ io.on('connection', (socket) => {
 
   socket.on("disconnect", (reason) => {
     console.log("Disconnect socket.id:", socket.id);
+    let clientIndex = server.clients.findIndex((onlineClient) => onlineClient.socketId === socket.id);
+    if (clientIndex !== -1) {
+      let client = server.clients[clientIndex];
+      client.socket.connection = false;
+      client.database.connection = false;
+      mainWindow.webContents.send('messageFromMain', {channel: 'update-client', client});
+    } else {
+      console.log(`This socket ${socket.id} is not exist in 'server.clients' array!`);
+    }
   });
 
   socket.on("greeting", (client) => {
     console.log("Connected client: ", client);
+    // Add socketId
+    client.socketId = socket.id;
     // Check new client in registered clients
     let clientIndex = server.clients.findIndex((registeredClient) => registeredClient.machineId === client.machineId);
-    console.log("clientIndex", clientIndex);
     // If this client is not exist in registered clients
     if (clientIndex === -1) {
       // Add this client to clients
@@ -224,9 +234,20 @@ io.on('connection', (socket) => {
       // Update clients file
       saveClientsFile(server.clients);
       // Update current on renderer
-      mainWindow.webContents.send('messageFromMain', {channel: 'registered-client', client});      
+      mainWindow.webContents.send('messageFromMain', {channel: 'registered-client', client});
     }
 
+  });
+
+  socket.on('update-client', (client) => {
+    console.log('update-client', client);
+    let clientIndex = server.clients.findIndex((onlineClient) => onlineClient.machineId === client.machineId);
+    if (clientIndex !== -1) {
+      server.clients[clientIndex] = client;
+      mainWindow.webContents.send('messageFromMain', {channel: 'update-client', client});
+    } else {
+      console.log('update-client', "Client not found in 'server.clients' array!");
+    }
   });
 
 });

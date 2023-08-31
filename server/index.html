@@ -21,6 +21,8 @@
             <td><span id="serverIp" class="tag is-black">#N/A</span></td>
             <th>Port</th>
             <td><span id="port" class="tag is-black">#N/A</span></td>
+            <th>Database</th>
+            <td><span id="database" class="tag is-black">#N/A</span></td>
           </tr>
         </tbody>
       </table>
@@ -45,6 +47,52 @@
     </div>
   </div>
 
+
+
+  <!-- Configs modal -->
+  <div id="configs-modal" class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head p-4">
+        <p class="modal-card-title is-size-6 has-text-weight-bold">Configs</p>
+        <button class="delete" aria-label="close"></button>
+      </header>
+      <section class="modal-card-body">
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Machine ID</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input id="client-machineId" class="input has-text-grey has-background-white-ter border-0" type="text" value="" readonly>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Name</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input class="input" type="text">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+      <footer class="modal-card-foot p-4 is-flex is-justify-content-flex-end	">
+        <button class="button is-small is-success">Save</button>
+        <button class="cancel button is-small">Cancel</button>
+      </footer>
+    </div>
+  </div>
+  <!-- Configs modal -->
 
   <script src="./renderer.js"></script>
 </body>

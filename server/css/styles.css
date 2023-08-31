@@ -28,3 +28,7 @@ button.is-success .icon {
 button.is-danger .icon {
   fill: white !important;
 }
+
+.border-0 {
+  border: 0 !important;
+}

@@ -200,7 +200,10 @@ function connectionChecker() {
     if (client.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       client.database = isDatabaseConnected;
-      if (client.database.connection === true) mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
+      if (client.database.connection === true) {
+        mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
+        socket.emit('update-client', client);
+      }
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
@@ -208,6 +211,7 @@ function connectionChecker() {
         if (client.database.connection !== isDatabaseStillConnected.result) {
           client.database.connection = false;
           mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
+          socket.emit('update-client', client);
         }
       }
     }
