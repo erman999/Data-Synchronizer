@@ -31,7 +31,7 @@
         <table class="table-clients">
           <thead>
             <tr>
-              <th>Machine ID</th>
+              <th>Name</th>
               <th>Client IP</th>
               <th>Server</th>
               <th>Database</th>
@@ -50,7 +50,7 @@
 
 
   <!-- Configs modal -->
-  <div id="configs-modal" class="modal is-active">
+  <div id="modal" class="modal is-active">
     <div class="modal-background"></div>
     <div class="modal-card">
       <header class="modal-card-head p-4">
@@ -66,7 +66,7 @@
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <input id="client-machineId" class="input has-text-grey has-background-white-ter border-0" type="text" value="" readonly>
+                <input id="modal-machineId" class="input is-small has-text-grey has-background-white-ter border-0" type="text" value="" readonly>
               </div>
             </div>
           </div>
@@ -79,14 +79,112 @@
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <input class="input" type="text">
+                <input id="modal-name" class="input is-small" type="text">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Client DB</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input id="modal-clientdb" class="input is-small has-text-grey has-background-white-ter border-0" type="text" value="" readonly>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Target DB</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input id="modal-targetdb" class="input is-small" type="text">
+              </div>
+              <p class="help is-danger">
+                This field is required
+              </p>
+            </div>
+            <div class="field is-flex-grow-0">
+              <div class="buttons control">
+                <button class="button is-small is-warning">Check</button>
+                <button class="button is-small is-link">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Tables</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <table id="modal-tables" class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth">
+                  <thead>
+                    <tr>
+                      <th>Table</th>
+                      <th>Primary</th>
+                      <th>Counter (S/C)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="#">ateqtest</a></td>
+                      <td>ateqTestId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">counter</a></td>
+                      <td>counterId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">kaynak</a></td>
+                      <td>kaynakId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">login</a></td>
+                      <td>loginId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">personellist</a></td>
+                      <td>personelListId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">sicaktest</a></td>
+                      <td>sicakTestId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">sifre</a></td>
+                      <td>sifreId</td>
+                      <td>0/0</td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">soguktest</a></td>
+                      <td>sogukTestId</td>
+                      <td>0/0</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
 
       </section>
-      <footer class="modal-card-foot p-4 is-flex is-justify-content-flex-end	">
+      <footer class="modal-card-foot p-4 is-flex is-justify-content-flex-end">
         <button class="button is-small is-success">Save</button>
         <button class="cancel button is-small">Cancel</button>
       </footer>

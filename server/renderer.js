@@ -2,18 +2,13 @@
 let serverIp = document.querySelector('#serverIp');
 let port = document.querySelector('#port');
 let database = document.querySelector('#database');
-let modal = document.querySelector('#configs-modal');
-let clientMachineId = document.querySelector('#client-machineId');
 
-
-
-// Open modal window
-// document.body.addEventListener('click', (event) => {
-//   console.log(event.currentTarget)
-//   if (event.target.classList.contains('configs')) {
-//     modal.classList.add('is-active');
-//   }
-// });
+let modal = document.querySelector('#modal');
+let modalMachineId = document.querySelector('#modal-machineId');
+let modalName = document.querySelector('#modal-name');
+let modalClientdb = document.querySelector('#modal-clientdb');
+let modalTargetdb = document.querySelector('#modal-targetdb');
+let modalTables = document.querySelector('#modal-tables');
 
 // Close modal window on various closing activities
 document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .cancel').forEach((el, i) => {
@@ -22,12 +17,12 @@ document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .can
   });
 });
 
-function client(machineId, clientIp, serverConnection, databaseConnection) {
-  let client = `<tr data-machineId="${machineId}">
-  <td><span class="machineId tag is-black">${machineId}</span></td>
-  <td><span class="clientIp tag is-black">${clientIp}</span></td>
-  <td><span class="server-connection tag ${serverConnection ? 'is-success' : 'is-danger'}">${serverConnection ? 'Connected': 'Disconnected'}</span></td>
-  <td><span class="database-connection tag ${databaseConnection ? 'is-success' : 'is-danger'}">${databaseConnection ? 'Connected': 'Disconnected'}</span></td>
+function appendClient(client) {
+  let html = `<tr data-machineId="${client.machineId}">
+  <td><span class="name tag is-black">${client.name}</span></td>
+  <td><span class="clientIp tag is-black">${client.clientIp}</span></td>
+  <td><span class="server-connection tag ${client.socket.connection ? 'is-success' : 'is-danger'}">${client.socket.connection ? 'Connected': 'Disconnected'}</span></td>
+  <td><span class="database-connection tag ${client.database.connection ? 'is-success' : 'is-danger'}">${client.database.connection ? 'Connected': 'Disconnected'}</span></td>
   <td>
   <button class="configs button is-warning is-small">
   <span class="icon">
@@ -36,33 +31,33 @@ function client(machineId, clientIp, serverConnection, databaseConnection) {
   </button>
   </td>
   </tr>`;
-  // Get table body
+
   let table = document.querySelector('.table-clients tbody');
-  // Insert html
-  table.insertAdjacentHTML('beforeend', client);
-  // Add listener to Configs button
+  table.insertAdjacentHTML('beforeend', html);
+
   table.lastChild.querySelector('.configs').addEventListener('click', function(e) {
-    // Open modal on click
     modal.classList.add('is-active');
-    clientMachineId.value = machineId;
+    modalMachineId.value = client.machineId;
+    modalName.value = client.name;
+    modalClientdb.value = client.configs.mysqlDatabase;
   });
+
 }
 
-function updateClient(machineId, clientIp, serverConnection, databaseConnection) {
-  let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
-  row.querySelector('.clientIp').textContent = clientIp;
+function updateClient(client) {
+  let row = document.querySelector(`tr[data-machineId="${client.machineId}"]`);
+  row.querySelector('.clientIp').textContent = client.clientIp;
 
   let serverConnectionCol = row.querySelector('.server-connection');
-  serverConnectionCol.textContent = serverConnection ? 'Connected': 'Disconnected';
-  serverConnectionCol.classList.add(serverConnection ? 'is-success' : 'is-danger');
-  serverConnectionCol.classList.remove(serverConnection ? 'is-danger' : 'is-success');
+  serverConnectionCol.textContent = client.socket.connection ? 'Connected': 'Disconnected';
+  serverConnectionCol.classList.add(client.socket.connection ? 'is-success' : 'is-danger');
+  serverConnectionCol.classList.remove(client.socket.connection ? 'is-danger' : 'is-success');
 
   let databaseConnectionCol = row.querySelector('.database-connection');
-  databaseConnectionCol.textContent = databaseConnection ? 'Connected': 'Disconnected';
-  databaseConnectionCol.classList.add(databaseConnection ? 'is-success' : 'is-danger');
-  databaseConnectionCol.classList.remove(databaseConnection ? 'is-danger' : 'is-success');
+  databaseConnectionCol.textContent = client.database.connection ? 'Connected': 'Disconnected';
+  databaseConnectionCol.classList.add(client.database.connection ? 'is-success' : 'is-danger');
+  databaseConnectionCol.classList.remove(client.database.connection ? 'is-danger' : 'is-success');
 
-  // row.querySelector('.configs').textContent = '';
 }
 
 window.ipcRender.receive('messageFromMain', (data) => {
@@ -78,29 +73,30 @@ window.ipcRender.receive('messageFromMain', (data) => {
     database.classList.add(data.server.database.connection ? 'is-success' : 'is-danger');
     database.classList.remove(data.server.database.connection ? 'is-danger' : 'is-success');
     // Print clients
-    data.server.clients.forEach((item, i) => {
-      client(item.machineId, item.clientIp, item.socket.connection, item.database.connection);
+    data.server.clients.forEach((client, i) => {
+      appendClient(client);
     });
     break;
-    case 'update':
-    // Update
+    case 'server-update':
+    // Update server info
     database.textContent = data.server.database.connection ? 'Connected' : 'Disconnected';
     database.classList.add(data.server.database.connection ? 'is-success' : 'is-danger');
     database.classList.remove(data.server.database.connection ? 'is-danger' : 'is-success');
     break;
     case 'new-client':
-    client(data.client.machineId, data.client.clientIp, data.client.socket.connection, data.client.database.connection);
+    appendClient(data.client);
     break;
     case 'registered-client':
-    updateClient(data.client.machineId, data.client.clientIp, data.client.socket.connection, data.client.database.connection);
+    updateClient(data.client);
     break;
     case 'update-client':
-    updateClient(data.client.machineId, data.client.clientIp, data.client.socket.connection, data.client.database.connection);
+    updateClient(data.client);
     break;
     default:
     console.log('Called channel is not exist.');
   }
 });
+
 
 setTimeout(() => {
   window.ipcRender.send('messageToMain', 'Renderer ready.');
@@ -115,3 +111,18 @@ setTimeout(() => {
 //     console.log(machineId);
 //   }
 // });
+
+
+
+
+
+// 
+// SHOW KEYS FROM table WHERE Key_name = 'PRIMARY'
+// SELECT MAX(id) FROM tablename;
+
+
+let infox = {
+  tables: [
+    {name: 'ateqtest', primary: 'ateqTestId'}
+  ]
+}

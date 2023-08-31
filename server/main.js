@@ -173,14 +173,14 @@ function connectionChecker() {
     if (server.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       server.database = isDatabaseConnected;
-      if (server.database.connection === true) mainWindow.webContents.send('messageFromMain', {channel: 'update', server});
+      if (server.database.connection === true) mainWindow.webContents.send('messageFromMain', {channel: 'server-update', server});
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
       if (isDatabaseStillConnected.result === false) {
         if (server.database.connection !== isDatabaseStillConnected.result) {
           server.database.connection = false;
-          mainWindow.webContents.send('messageFromMain', {channel: 'update', server});
+          mainWindow.webContents.send('messageFromMain', {channel: 'server-update', server});
         }
       }
     }
@@ -201,6 +201,7 @@ async function saveClientsFile(data) {
 io.on('connection', (socket) => {
   console.log('Connected socket.id:', socket.id);
 
+
   socket.on("disconnect", (reason) => {
     console.log("Disconnect socket.id:", socket.id);
     let clientIndex = server.clients.findIndex((onlineClient) => onlineClient.socketId === socket.id);
@@ -214,6 +215,7 @@ io.on('connection', (socket) => {
     }
   });
 
+
   socket.on("greeting", (client) => {
     console.log("Connected client: ", client);
     // Add socketId
@@ -222,6 +224,8 @@ io.on('connection', (socket) => {
     let clientIndex = server.clients.findIndex((registeredClient) => registeredClient.machineId === client.machineId);
     // If this client is not exist in registered clients
     if (clientIndex === -1) {
+      // Add a name for client name
+      client.name = client.machineId.split('-')[0];
       // Add this client to clients
       server.clients.push(client);
       // Save clients file
@@ -236,8 +240,8 @@ io.on('connection', (socket) => {
       // Update current on renderer
       mainWindow.webContents.send('messageFromMain', {channel: 'registered-client', client});
     }
-
   });
+
 
   socket.on('update-client', (client) => {
     console.log('update-client', client);
@@ -249,5 +253,7 @@ io.on('connection', (socket) => {
       console.log('update-client', "Client not found in 'server.clients' array!");
     }
   });
+
+
 
 });

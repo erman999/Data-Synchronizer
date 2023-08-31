@@ -32,3 +32,23 @@ button.is-danger .icon {
 .border-0 {
   border: 0 !important;
 }
+
+.modal .label {
+  font-size: 0.9rem;
+}
+
+.table-server th, .table-server td, .table-clients th, #modal table {
+  font-size: 0.9rem;
+}
+
+#modal table {
+  font-size: 0.8rem;
+}
+
+#modal-tables th, #modal-tables td {
+  vertical-align: middle !important;
+}
+
+#modal-tables thead th:nth-child(3), #modal-tables tbody td:nth-child(3) {
+  text-align: center !important;
+}
