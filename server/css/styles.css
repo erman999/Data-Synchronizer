@@ -1,0 +1,30 @@
+html, body {
+  overflow: hidden !important;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+}
+
+.table-clients-container {
+  max-height: 420px;
+  overflow: scroll;
+}
+
+.table-server th, .table-server td {
+  text-align: left !important;
+  vertical-align: middle !important;
+}
+
+.table-clients th, .table-clients td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+button.is-success .icon {
+  fill: white !important;
+}
+
+button.is-danger .icon {
+  fill: white !important;
+}

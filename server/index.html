@@ -10,40 +10,37 @@
 </head>
 <body>
 
-  <div class="container p-3">
+  <div class="container p-4">
     <div class="content">
-      <h1>Server</h1>
+      <h3 class="mt-1 mb-5">Data Transfer Network: Server</h3>
 
-      <table>
-        <thead>
-          <tr>
-            <th>One</th>
-            <th>Two</th>
-          </tr>
-        </thead>
+      <table class="table-server table is-bordered is-narrow mb-5">
         <tbody>
           <tr>
-            <td>Three</td>
-            <td>Four</td>
-          </tr>
-          <tr>
-            <td>Five</td>
-            <td>Six</td>
-          </tr>
-          <tr>
-            <td>Seven</td>
-            <td>Eight</td>
-          </tr>
-          <tr>
-            <td>Nine</td>
-            <td>Ten</td>
-          </tr>
-          <tr>
-            <td>Eleven</td>
-            <td>Twelve</td>
+            <th>Server IP</th>
+            <td><span id="serverIp" class="tag is-black">#N/A</span></td>
+            <th>Port</th>
+            <td><span id="port" class="tag is-black">#N/A</span></td>
           </tr>
         </tbody>
       </table>
+
+      <div class="table-clients-container">
+        <table class="table-clients">
+          <thead>
+            <tr>
+              <th>Machine ID</th>
+              <th>Client IP</th>
+              <th>Server</th>
+              <th>Database</th>
+              <th>Configs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Clients -->
+          </tbody>
+        </table>
+      </div>
 
     </div>
   </div>

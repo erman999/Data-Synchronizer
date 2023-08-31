@@ -20,7 +20,7 @@ function createWindow () {
   mainWindow.loadFile('index.html')
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 }
 
 app.whenReady().then(() => {
@@ -55,6 +55,7 @@ let promisePool = {};
 
 let client = {
   machineId: nodeMachineId.machineIdSync({original: true}),
+  clientIp: getIpAdresses().v4,
   configs: {},
   database: {},
   socket: {}
@@ -91,7 +92,23 @@ ipcMain.on('messageToMain', (event, message) => {
 });
 
 
-
+// Get external IP adresses (IPv4 & IPv6)
+function getIpAdresses() {
+  let ip = {};
+  const networkInterfaces = os.networkInterfaces();
+  Object.keys(networkInterfaces).forEach((name, index) => {
+    networkInterfaces[name].forEach((item) => {
+      if (!item.internal) {
+        if (item.family === 'IPv4') {
+          ip.v4 = item.address;
+        } else if (item.family === 'IPv6') {
+          ip.v6 = item.address;
+        }
+      }
+    });
+  });
+  return ip;
+}
 
 // Read file in 'configs' folder
 async function readConfigFile(event, data) {

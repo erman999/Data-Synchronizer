@@ -8,6 +8,8 @@ function createWindow () {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    autoHideMenuBar: true,
+    resizable: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -71,6 +73,14 @@ async function startApp() {
   const clients = await readConfigFile(null, 'clients.json');
   server.clients = clients;
 
+  // Update registered clients connection status
+  if (server.clients.length > 0) {
+    server.clients.forEach((item, i) => {
+      item.socket.connection = false;
+      item.database.connection = false;
+    });
+  }
+
   // Try to connect database
   const isDatabaseConnected = await connectToDatabase();
   server.database = isDatabaseConnected;
@@ -82,7 +92,7 @@ async function startApp() {
     server.socket.port = server.configs.port;
     console.log(server);
     console.log(`Server listening on port ${server.configs.port}`);
-    mainWindow.webContents.send('messageFromMain', server);
+    mainWindow.webContents.send('messageFromMain', {channel: 'update', server});
   });
 
   // Start database connection checker loop
@@ -163,14 +173,14 @@ function connectionChecker() {
     if (server.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       server.database = isDatabaseConnected;
-      if (server.database.connection === true) mainWindow.webContents.send('messageFromMain', server);
+      if (server.database.connection === true) mainWindow.webContents.send('messageFromMain', {channel: 'update', server});
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
       if (isDatabaseStillConnected.result === false) {
         if (server.database.connection !== isDatabaseStillConnected.result) {
           server.database.connection = false;
-          mainWindow.webContents.send('messageFromMain', server);
+          mainWindow.webContents.send('messageFromMain', {channel: 'update', server});
         }
       }
     }
@@ -197,7 +207,6 @@ io.on('connection', (socket) => {
 
   socket.on("greeting", (client) => {
     console.log("Connected client: ", client);
-    mainWindow.webContents.send('messageFromMain', client);
     // Check new client in registered clients
     let clientIndex = server.clients.findIndex((registeredClient) => registeredClient.machineId === client.machineId);
     console.log("clientIndex", clientIndex);
@@ -208,6 +217,14 @@ io.on('connection', (socket) => {
       // Save clients file
       saveClientsFile(server.clients);
       // Tell user register/setup required.
+      mainWindow.webContents.send('messageFromMain', {channel: 'new-client', client});
+    } else {
+      // Update client
+      server.clients[clientIndex] = client;
+      // Update clients file
+      saveClientsFile(server.clients);
+      // Update current on renderer
+      mainWindow.webContents.send('messageFromMain', {channel: 'registered-client', client});      
     }
 
   });
