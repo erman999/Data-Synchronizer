@@ -52,3 +52,15 @@ button.is-danger .icon {
 #modal-tables thead th:nth-child(3), #modal-tables tbody td:nth-child(3) {
   text-align: center !important;
 }
+
+#modal-tables thead th:nth-child(4), #modal-tables tbody td:nth-child(4) {
+  text-align: center !important;
+}
+
+#modal-tables tbody td:nth-child(4) .tag {
+  max-height: 20px;
+}
+
+#modal .buttons .button {
+  min-width: 4rem;
+}

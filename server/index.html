@@ -100,29 +100,35 @@
 
         <div class="field is-horizontal">
           <div class="field-label has-text-left is-normal">
-            <label class="label">Target DB</label>
+            <label class="label">Server DB</label>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <input id="modal-targetdb" class="input is-small" type="text">
+                <div class="select is-small is-fullwidth">
+                  <select id="modal-server-databases">
+                    <option disabled selected>Select database</option>
+                  </select>
+                </div>
               </div>
-              <p class="help is-danger">
-                This field is required
+              <p id="modal-database-help" class="help">
+
               </p>
             </div>
             <div class="field is-flex-grow-0">
               <div class="buttons control">
-                <button class="button is-small is-warning">Check</button>
-                <button class="button is-small is-link">Create</button>
+                <button id="modal-refresh-button" class="button is-small is-primary">Refresh</button>
+                <button id="modal-check-button" class="button is-small is-warning">Check</button>
+                <button id="modal-bind-button" class="button is-small is-link">Bind</button>
               </div>
             </div>
           </div>
         </div>
 
+
         <div class="field is-horizontal">
           <div class="field-label has-text-left is-normal">
-            <label class="label">Tables</label>
+            <label class="label">Client Tables</label>
           </div>
           <div class="field-body">
             <div class="field">
@@ -131,8 +137,9 @@
                   <thead>
                     <tr>
                       <th>Table</th>
-                      <th>Primary</th>
-                      <th>Counter (S/C)</th>
+                      <th>Watch</th>
+                      <th>Sync</th>
+                      <th>Result</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -140,44 +147,66 @@
                       <td><a href="#">ateqtest</a></td>
                       <td>ateqTestId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">counter</a></td>
                       <td>counterId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">kaynak</a></td>
                       <td>kaynakId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">login</a></td>
                       <td>loginId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">personellist</a></td>
                       <td>personelListId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">sicaktest</a></td>
                       <td>sicakTestId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">sifre</a></td>
                       <td>sifreId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                     <tr>
                       <td><a href="#">soguktest</a></td>
                       <td>sogukTestId</td>
                       <td>0/0</td>
+                      <td><span class="tag is-success">OK</span></td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Show Create</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <textarea class="textarea is-small has-text-grey has-background-white-ter" rows="10" readonly></textarea>
               </div>
             </div>
           </div>

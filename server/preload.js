@@ -14,7 +14,9 @@ const ipc = {
       'messageFromMain'
     ],
     // From render to main and back again
-    'sendReceive': []
+    'sendReceive': [
+      'invoker'
+    ]
   }
 };
 

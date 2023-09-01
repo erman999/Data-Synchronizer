@@ -7,8 +7,16 @@ let modal = document.querySelector('#modal');
 let modalMachineId = document.querySelector('#modal-machineId');
 let modalName = document.querySelector('#modal-name');
 let modalClientdb = document.querySelector('#modal-clientdb');
-let modalTargetdb = document.querySelector('#modal-targetdb');
+// let modalTargetdb = document.querySelector('#modal-targetdb');
 let modalTables = document.querySelector('#modal-tables');
+let modalServerDatabases = document.querySelector('#modal-server-databases');
+
+let modalRefreshBtn = document.querySelector('#modal-refresh-button');
+let modalCheckBtn = document.querySelector('#modal-check-button');
+let modalBindBtn = document.querySelector('#modal-bind-button');
+let modalDatabaseHelp = document.querySelector('#modal-database-help');
+
+
 
 // Close modal window on various closing activities
 document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .cancel').forEach((el, i) => {
@@ -16,6 +24,23 @@ document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .can
     modal.classList.remove('is-active');
   });
 });
+
+modalRefreshBtn.addEventListener('click', function() {
+  window.ipcRender.send('messageToMain', {channel: 'server-databases'});
+});
+
+modalCheckBtn.addEventListener('click', function() {
+  // Get selected database value
+  let selectedDatabase = modalServerDatabases.value;
+  let data = {selectedDatabase: selectedDatabase};
+  console.log(data);
+
+  window.ipcRender.invoke('invoker', data).then((result) => {
+    console.log(result);
+  });
+
+});
+
 
 function appendClient(client) {
   let html = `<tr data-machineId="${client.machineId}">
@@ -76,12 +101,47 @@ window.ipcRender.receive('messageFromMain', (data) => {
     data.server.clients.forEach((client, i) => {
       appendClient(client);
     });
+    // Get server databases
+    if (data.server.database.connection) {
+      window.ipcRender.send('messageToMain', {channel: 'server-databases'});
+    }
     break;
     case 'server-update':
     // Update server info
     database.textContent = data.server.database.connection ? 'Connected' : 'Disconnected';
     database.classList.add(data.server.database.connection ? 'is-success' : 'is-danger');
     database.classList.remove(data.server.database.connection ? 'is-danger' : 'is-success');
+    // Get server databases
+    if (data.server.database.connection) {
+      window.ipcRender.send('messageToMain', {channel: 'server-databases'});
+    }
+    break;
+    case 'server-databases':
+
+    // Remove previous options
+    while (modalServerDatabases.firstChild) {
+      modalServerDatabases.removeChild(modalServerDatabases.lastChild);
+    }
+
+    // Add Select database option
+    let option = `<option value="0" disabled>Select database</option>`;
+    modalServerDatabases.insertAdjacentHTML('beforeend', option);
+
+    // Append options
+    data.databases.forEach((db, i) => {
+      let option = `<option value="${db}">${db}</option>`;
+      modalServerDatabases.insertAdjacentHTML('beforeend', option);
+    });
+
+    // Helper message
+    if (data.databases.length === 0) {
+      modalDatabaseHelp.textContent = 'No database connection';
+      modalDatabaseHelp.classList.add('is-danger');
+      modalDatabaseHelp.classList.remove('is-success');
+    } else {
+      modalDatabaseHelp.textContent = `Listing ${data.databases.length} databases`;
+    }
+
     break;
     case 'new-client':
     appendClient(data.client);
@@ -98,11 +158,6 @@ window.ipcRender.receive('messageFromMain', (data) => {
 });
 
 
-setTimeout(() => {
-  window.ipcRender.send('messageToMain', 'Renderer ready.');
-}, 2000);
-
-
 // Alternative way to obtaion row machineId
 // document.addEventListener("click", function(e){
 //   const target = e.target.closest(".configs");
@@ -113,10 +168,7 @@ setTimeout(() => {
 // });
 
 
-
-
-
-// 
+//
 // SHOW KEYS FROM table WHERE Key_name = 'PRIMARY'
 // SELECT MAX(id) FROM tablename;
 

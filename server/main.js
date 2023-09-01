@@ -50,7 +50,7 @@ const mysql = require('mysql2');
 const express = require('express')();
 const httpServer = require('http').createServer(express);
 const io = require('socket.io')(httpServer);
-
+let mySocket = {};
 
 let promisePool = {};
 
@@ -98,12 +98,6 @@ async function startApp() {
   // Start database connection checker loop
   connectionChecker();
 }
-
-
-ipcMain.on('messageToMain', (event, message) => {
-  console.log(message);
-});
-
 
 // Read file in 'configs' folder
 async function readConfigFile(event, data) {
@@ -198,8 +192,11 @@ async function saveClientsFile(data) {
 }
 
 
+// Socket listeners
 io.on('connection', (socket) => {
   console.log('Connected socket.id:', socket.id);
+
+  mySocket = socket;
 
 
   socket.on("disconnect", (reason) => {
@@ -226,6 +223,8 @@ io.on('connection', (socket) => {
     if (clientIndex === -1) {
       // Add a name for client name
       client.name = client.machineId.split('-')[0];
+      // Add registration object
+      client.registration = {completed: false};
       // Add this client to clients
       server.clients.push(client);
       // Save clients file
@@ -233,11 +232,14 @@ io.on('connection', (socket) => {
       // Tell user register/setup required.
       mainWindow.webContents.send('messageFromMain', {channel: 'new-client', client});
     } else {
-      // Update client
+      // Add preserved values to client
+      client.name = server.clients[clientIndex].name;
+      client.registration = server.clients[clientIndex].registration;
+      // Update clients on server
       server.clients[clientIndex] = client;
-      // Update clients file
+      // Save clients
       saveClientsFile(server.clients);
-      // Update current on renderer
+      // Update renderer
       mainWindow.webContents.send('messageFromMain', {channel: 'registered-client', client});
     }
   });
@@ -254,6 +256,87 @@ io.on('connection', (socket) => {
     }
   });
 
-
-
 });
+
+
+
+// IPC listeners
+ipcMain.on('messageToMain', async (event, data) => {
+  console.log(data);
+  switch (data.channel) {
+    case 'server-databases':
+    if (server.database.connection) {
+      // Create database array
+      let databases = [];
+      // Get databases from server database
+      let showDatabases = await sqlQuery('SHOW DATABASES;');
+      // Organise values
+      showDatabases.response.forEach((db, i) => {
+        databases.push(Object.values(db)[0]);
+      });
+      // Define SQL specific databases
+      let toRemove = ['information_schema', 'performance_schema', 'mysql'];
+      // Remove SQL specific databases
+      databases = databases.filter((el) => !toRemove.includes(el));
+      // Send databases to renderer
+      mainWindow.webContents.send('messageFromMain', {channel: 'server-databases', databases});
+    } else {
+      console.log('Server is not connected to a database!');
+      mainWindow.webContents.send('messageFromMain', {channel: 'server-databases', databases: []});
+    }
+    break;
+    default:
+    console.log(`This channel [${data.channel}] is not exist!`);
+  }
+});
+
+
+// ipcMain.handle('test', async (event, data) => {
+//   console.log("test invoked.");
+//   return await new Promise(async (resolve, reject) => {
+//     resolve({data: 'test'});
+//   });
+// });
+
+
+async function getDatabaseDetails(selectedDatabase) {
+  // Warning: forEach doesn't strictly follow async/await rules.
+  // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
+
+  // Create database array
+  let db = [];
+  // Get database tables
+  let showTables = await sqlQuery(`SHOW TABLES FROM ${selectedDatabase};`);
+  // Merge table names with fields
+  for (const table of showTables.response) {
+    let tableName = Object.values(table)[0];
+    let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${selectedDatabase};`);
+    let tableObj = {table: tableName, fields: showFields.response};
+    db.push(tableObj);
+  }
+
+  return db;
+}
+
+ipcMain.handle('invoker', async (event, data) => {
+  console.log("invoker:", data);
+  let db = await getDatabaseDetails(data.selectedDatabase);
+  return db;
+});
+
+
+
+// ipcMain.handle('invoker', async (event, data) => {
+//   console.log("invoker:", data);
+//   return await new Promise(async (resolve, reject) => {
+//     let db = [];
+//     let showTables = await sqlQuery(`SHOW TABLES FROM ${data.selectedDatabase};`);
+//     await showTables.response.forEach(async (table, i) => {
+//       let tableName = Object.values(table)[0];
+//       let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${data.selectedDatabase};`);
+//       let tableObj = {tableName: tableName, fields: showFields.response};
+//       db.push(tableObj);
+//     });
+//     resolve(db);
+//   });
+// });

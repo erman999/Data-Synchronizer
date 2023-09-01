@@ -20,7 +20,7 @@ function createWindow () {
   mainWindow.loadFile('index.html')
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 }
 
 app.whenReady().then(() => {
@@ -62,7 +62,6 @@ let client = {
 };
 
 
-
 async function startApp() {
 
   // Read config file
@@ -72,6 +71,26 @@ async function startApp() {
   // Try to connect database
   const isDatabaseConnected = await connectToDatabase();
   client.database = isDatabaseConnected;
+
+  if (client.database.connection === true) {
+    let tables = [];
+
+    // Get tables
+    let showTables = await sqlQuery('SHOW TABLES;');
+
+    showTables.response.forEach((table, i) => {
+      tables.push(Object.values(table)[0]);
+    });
+
+    tables.forEach(async (table, i) => {
+      let fields = await sqlQuery(`SHOW FIELDS FROM ${table};`);
+      console.log(fields);
+    });
+
+
+    mainWindow.webContents.send('messageFromMain', {channel: 'log', tables});
+  }
+
 
   // Try to connect server
   const isServerConnected = await connectToServer();
@@ -220,10 +239,32 @@ function connectionChecker() {
 }
 
 
+async function getDatabaseDetails(selectedDatabase) {
+  // Warning: forEach doesn't strictly follow async/await rules.
+  // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
+
+  // Create database array
+  let db = [];
+  // Get database tables
+  let showTables = await sqlQuery(`SHOW TABLES FROM ${selectedDatabase};`);
+  // Merge table names with fields
+  for (const table of showTables.response) {
+    let tableName = Object.values(table)[0];
+    let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${selectedDatabase};`);
+    let tableObj = {table: tableName, fields: showFields.response};
+    db.push(tableObj);
+  }
+
+  return db;
+}
+
+
 function addSocketListeners() {
 
   socket.on("greeting", (arg) => {
     console.log(arg);
   });
+
+  // Add listener here for getDatabaseDetails()
 
 }
