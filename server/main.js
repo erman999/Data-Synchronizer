@@ -50,7 +50,6 @@ const mysql = require('mysql2');
 const express = require('express')();
 const httpServer = require('http').createServer(express);
 const io = require('socket.io')(httpServer);
-let mySocket = {};
 
 let promisePool = {};
 
@@ -196,9 +195,6 @@ async function saveClientsFile(data) {
 io.on('connection', (socket) => {
   console.log('Connected socket.id:', socket.id);
 
-  mySocket = socket;
-
-
   socket.on("disconnect", (reason) => {
     console.log("Disconnect socket.id:", socket.id);
     let clientIndex = server.clients.findIndex((onlineClient) => onlineClient.socketId === socket.id);
@@ -249,11 +245,29 @@ io.on('connection', (socket) => {
     console.log('update-client', client);
     let clientIndex = server.clients.findIndex((onlineClient) => onlineClient.machineId === client.machineId);
     if (clientIndex !== -1) {
-      server.clients[clientIndex] = client;
-      mainWindow.webContents.send('messageFromMain', {channel: 'update-client', client});
+      // When database connection status change at client side just update connection info
+      server.clients[clientIndex].database.connection = client.database.connection;
+      mainWindow.webContents.send('messageFromMain', {channel: 'update-client', client: server.clients[clientIndex]});
     } else {
       console.log('update-client', "Client not found in 'server.clients' array!");
     }
+  });
+
+
+  socket.on('check-databases', async (data) => {
+    // Check for server database connection
+    if (server.database.connection !== true) {
+      mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'No database connection!'});
+      return false;
+    }
+
+    // Get server/target database name
+    let selectedDatabase = data.serverData.info.selectedDatabase;
+
+    let serverDatabase = await getDatabaseDetails(selectedDatabase);
+    let clientDatabase = data.clientDatabase;
+    mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase}});
+
   });
 
 });
@@ -282,22 +296,25 @@ ipcMain.on('messageToMain', async (event, data) => {
       mainWindow.webContents.send('messageFromMain', {channel: 'server-databases', databases});
     } else {
       console.log('Server is not connected to a database!');
-      mainWindow.webContents.send('messageFromMain', {channel: 'server-databases', databases: []});
+      mainWindow.webContents.send('messageFromMain', {channel: 'server-databases', databases: [], error: 'No database connection!'});
     }
+    break;
+    case 'check-databases':
+
+    let clientIndex = server.clients.findIndex((client) => client.machineId === data.info.machineId);
+    if (clientIndex === -1) {
+      console.log("Client not found.");
+    } else {
+      console.log("Client found");
+      let socketId = server.clients[clientIndex].socketId;
+      io.to(socketId).emit('check-databases', data);
+    }
+
     break;
     default:
     console.log(`This channel [${data.channel}] is not exist!`);
   }
 });
-
-
-// ipcMain.handle('test', async (event, data) => {
-//   console.log("test invoked.");
-//   return await new Promise(async (resolve, reject) => {
-//     resolve({data: 'test'});
-//   });
-// });
-
 
 async function getDatabaseDetails(selectedDatabase) {
   // Warning: forEach doesn't strictly follow async/await rules.
@@ -318,25 +335,9 @@ async function getDatabaseDetails(selectedDatabase) {
   return db;
 }
 
-ipcMain.handle('invoker', async (event, data) => {
-  console.log("invoker:", data);
-  let db = await getDatabaseDetails(data.selectedDatabase);
-  return db;
-});
-
 
 
 // ipcMain.handle('invoker', async (event, data) => {
 //   console.log("invoker:", data);
-//   return await new Promise(async (resolve, reject) => {
-//     let db = [];
-//     let showTables = await sqlQuery(`SHOW TABLES FROM ${data.selectedDatabase};`);
-//     await showTables.response.forEach(async (table, i) => {
-//       let tableName = Object.values(table)[0];
-//       let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${data.selectedDatabase};`);
-//       let tableObj = {tableName: tableName, fields: showFields.response};
-//       db.push(tableObj);
-//     });
-//     resolve(db);
-//   });
+//   return 'world';
 // });

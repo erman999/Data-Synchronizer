@@ -7,7 +7,6 @@ let modal = document.querySelector('#modal');
 let modalMachineId = document.querySelector('#modal-machineId');
 let modalName = document.querySelector('#modal-name');
 let modalClientdb = document.querySelector('#modal-clientdb');
-// let modalTargetdb = document.querySelector('#modal-targetdb');
 let modalTables = document.querySelector('#modal-tables');
 let modalServerDatabases = document.querySelector('#modal-server-databases');
 
@@ -17,6 +16,13 @@ let modalBindBtn = document.querySelector('#modal-bind-button');
 let modalDatabaseHelp = document.querySelector('#modal-database-help');
 
 
+
+function modalDatabaseHelper(text, color) {
+  let colors = ['is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
+  modalDatabaseHelp.classList.remove(...colors);
+  modalDatabaseHelp.classList.add(color);
+  modalDatabaseHelp.textContent = text;
+}
 
 // Close modal window on various closing activities
 document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .cancel').forEach((el, i) => {
@@ -32,14 +38,17 @@ modalRefreshBtn.addEventListener('click', function() {
 modalCheckBtn.addEventListener('click', function() {
   // Get selected database value
   let selectedDatabase = modalServerDatabases.value;
-  let data = {selectedDatabase: selectedDatabase};
-  console.log(data);
+  let data = {selectedDatabase: selectedDatabase, machineId: modalMachineId.value.trim()};
 
-  window.ipcRender.invoke('invoker', data).then((result) => {
-    console.log(result);
-  });
-
+  if (selectedDatabase == 0) {
+    modalDatabaseHelper('Please select a valid database!', 'is-danger')
+  } else {
+    window.ipcRender.send('messageToMain', {channel: 'check-databases', info: data});
+  }
+  
 });
+
+
 
 
 function appendClient(client) {
@@ -111,12 +120,14 @@ window.ipcRender.receive('messageFromMain', (data) => {
     database.textContent = data.server.database.connection ? 'Connected' : 'Disconnected';
     database.classList.add(data.server.database.connection ? 'is-success' : 'is-danger');
     database.classList.remove(data.server.database.connection ? 'is-danger' : 'is-success');
-    // Get server databases
-    if (data.server.database.connection) {
-      window.ipcRender.send('messageToMain', {channel: 'server-databases'});
-    }
+    // Update server databases
+    window.ipcRender.send('messageToMain', {channel: 'server-databases'});
     break;
     case 'server-databases':
+
+    if (data.hasOwnProperty('error')) {
+      modalDatabaseHelper(data.error, 'is-danger');
+    }
 
     // Remove previous options
     while (modalServerDatabases.firstChild) {
@@ -124,7 +135,7 @@ window.ipcRender.receive('messageFromMain', (data) => {
     }
 
     // Add Select database option
-    let option = `<option value="0" disabled>Select database</option>`;
+    let option = `<option value="0" selected disabled>Select database</option>`;
     modalServerDatabases.insertAdjacentHTML('beforeend', option);
 
     // Append options
@@ -135,12 +146,17 @@ window.ipcRender.receive('messageFromMain', (data) => {
 
     // Helper message
     if (data.databases.length === 0) {
-      modalDatabaseHelp.textContent = 'No database connection';
-      modalDatabaseHelp.classList.add('is-danger');
-      modalDatabaseHelp.classList.remove('is-success');
+      modalDatabaseHelper('No database connection!', 'is-danger');
     } else {
-      modalDatabaseHelp.textContent = `Listing ${data.databases.length} databases`;
+      modalDatabaseHelper(`Listing ${data.databases.length} databases`, 'is-black');
     }
+
+    break;
+    case 'check-databases':
+
+    // if (result.hasOwnProperty('error')) {
+    //   modalDatabaseHelper(result.error, 'is-danger');
+    // }
 
     break;
     case 'new-client':
@@ -158,23 +174,10 @@ window.ipcRender.receive('messageFromMain', (data) => {
 });
 
 
-// Alternative way to obtaion row machineId
-// document.addEventListener("click", function(e){
-//   const target = e.target.closest(".configs");
-//   if (target) {
-//     const machineId = target.parentElement.parentElement.dataset.machineid;
-//     console.log(machineId);
-//   }
-// });
-
-
-//
 // SHOW KEYS FROM table WHERE Key_name = 'PRIMARY'
 // SELECT MAX(id) FROM tablename;
 
 
-let infox = {
-  tables: [
-    {name: 'ateqtest', primary: 'ateqTestId'}
-  ]
-}
+// window.ipcRender.invoke('invoker', 'hello').then((result) => {
+//   console.log(result);
+// });

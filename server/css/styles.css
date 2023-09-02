@@ -64,3 +64,7 @@ button.is-danger .icon {
 #modal .buttons .button {
   min-width: 4rem;
 }
+
+#modal .modal-card-foot .button {
+  min-width: 4rem;
+}

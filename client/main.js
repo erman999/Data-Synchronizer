@@ -72,31 +72,8 @@ async function startApp() {
   const isDatabaseConnected = await connectToDatabase();
   client.database = isDatabaseConnected;
 
-  if (client.database.connection === true) {
-    let tables = [];
-
-    // Get tables
-    let showTables = await sqlQuery('SHOW TABLES;');
-
-    showTables.response.forEach((table, i) => {
-      tables.push(Object.values(table)[0]);
-    });
-
-    tables.forEach(async (table, i) => {
-      let fields = await sqlQuery(`SHOW FIELDS FROM ${table};`);
-      console.log(fields);
-    });
-
-
-    mainWindow.webContents.send('messageFromMain', {channel: 'log', tables});
-  }
-
-
   // Try to connect server
   const isServerConnected = await connectToServer();
-
-  // Add socket events
-  addSocketListeners();
 
   // Start database connection checker loop
   connectionChecker();
@@ -196,6 +173,14 @@ async function connectToServer() {
     });
 
 
+    socket.on("check-databases", async (data) => {
+      console.log("Socket called: check-databases");
+      let db = await getDatabaseDetails(client.configs.mysqlDatabase);
+      console.log(db);
+      socket.emit('check-databases', {clientDatabase: db, serverData: data});
+    });
+
+
   });
 }
 
@@ -243,6 +228,9 @@ async function getDatabaseDetails(selectedDatabase) {
   // Warning: forEach doesn't strictly follow async/await rules.
   // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
 
+  // Catch errors
+  if (client.database.connection !== true) return {error: 'No database connection!'};
+
   // Create database array
   let db = [];
   // Get database tables
@@ -256,15 +244,4 @@ async function getDatabaseDetails(selectedDatabase) {
   }
 
   return db;
-}
-
-
-function addSocketListeners() {
-
-  socket.on("greeting", (arg) => {
-    console.log(arg);
-  });
-
-  // Add listener here for getDatabaseDetails()
-
 }
