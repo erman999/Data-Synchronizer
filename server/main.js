@@ -263,10 +263,24 @@ io.on('connection', (socket) => {
 
     // Get server/target database name
     let selectedDatabase = data.serverData.info.selectedDatabase;
+    let machineId = data.serverData.info.machineId;
 
     let serverDatabase = await getDatabaseDetails(selectedDatabase);
     let clientDatabase = data.clientDatabase;
-    mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase}});
+    mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: machineId}});
+
+  });
+
+
+
+  socket.on('show-create-table', async (data) => {
+    // Check for server database connection
+    if (server.database.connection !== true) {
+      mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', error: 'No database connection!'});
+      return false;
+    }
+
+    mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', showCreate: data.showCreate});
 
   });
 
@@ -303,11 +317,25 @@ ipcMain.on('messageToMain', async (event, data) => {
 
     let clientIndex = server.clients.findIndex((client) => client.machineId === data.info.machineId);
     if (clientIndex === -1) {
-      console.log("Client not found.");
+      console.log("Client not found!");
+      mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'Client not found!'});
     } else {
       console.log("Client found");
       let socketId = server.clients[clientIndex].socketId;
       io.to(socketId).emit('check-databases', data);
+    }
+
+    break;
+    case 'show-create-table':
+
+    let clientIndex2 = server.clients.findIndex((client) => client.machineId === data.machineId);
+    if (clientIndex2 === -1) {
+      console.log("Client not found!");
+      mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', error: 'Client not found!'});
+    } else {
+      console.log("Client found");
+      let socketId = server.clients[clientIndex2].socketId;
+      io.to(socketId).emit('show-create-table', data);
     }
 
     break;

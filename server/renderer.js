@@ -14,6 +14,7 @@ let modalRefreshBtn = document.querySelector('#modal-refresh-button');
 let modalCheckBtn = document.querySelector('#modal-check-button');
 let modalBindBtn = document.querySelector('#modal-bind-button');
 let modalDatabaseHelp = document.querySelector('#modal-database-help');
+let modalShowCreate = document.querySelector('#modal-show-create');
 
 
 
@@ -45,9 +46,13 @@ modalCheckBtn.addEventListener('click', function() {
   } else {
     window.ipcRender.send('messageToMain', {channel: 'check-databases', info: data});
   }
-  
+
 });
 
+
+modalBindBtn.addEventListener('click', function() {
+  // This is were I left...
+});
 
 
 
@@ -74,6 +79,8 @@ function appendClient(client) {
     modalMachineId.value = client.machineId;
     modalName.value = client.name;
     modalClientdb.value = client.configs.mysqlDatabase;
+    // Refresh databases
+    window.ipcRender.send('messageToMain', {channel: 'server-databases'});
   });
 
 }
@@ -153,11 +160,106 @@ window.ipcRender.receive('messageFromMain', (data) => {
 
     break;
     case 'check-databases':
+    // Check if there is any error
+    if (data.hasOwnProperty('error')) {
+      // Print error if exist
+      modalDatabaseHelper(data.error, 'is-danger');
+    } else {
 
-    // if (result.hasOwnProperty('error')) {
-    //   modalDatabaseHelper(result.error, 'is-danger');
-    // }
+      // Define shorthand variables
+      let clientDatabase = data.databases.clientDatabase;
+      let serverDatabase = data.databases.serverDatabase;
 
+      // Get only table body
+      let checkTable = modalTables.querySelector('tbody');
+
+      // Clear table
+      while (checkTable.firstChild) {
+        checkTable.removeChild(checkTable.lastChild);
+      }
+
+      // Watch results
+      let totalCheckResult = true;
+
+      // Loop for each client table
+      clientDatabase.forEach((table, i) => {
+        // Match info variables
+        let tableMatch = true;
+        let columnMatch = true;
+
+        // Check server table existance on target database
+        let tableMatchIndex = serverDatabase.findIndex(item => item.table === table.table);
+        // Update table match info
+        if (tableMatchIndex === -1) {
+          tableMatch = false;
+          columnMatch = false;
+        }
+
+        // HTML collector for option elements
+        let options = '';
+
+        // Loop through each table columns for client
+        table.fields.forEach((col, i) => {
+          // Create options
+          let option = `<option value="${col.Field}" ${col.Key === 'PRI' ? 'selected' : ''}>${col.Field} | ${col.Type} ${col.Key !== '' ? ' | (PRIMARY)' : '' }</option>`;
+          // Append in options
+          options += option;
+
+          // If table exists do a column check
+          if (tableMatch) {
+            // Check if server table matches with client's table columns
+            let columnCheck = serverDatabase[tableMatchIndex].fields.some(item => item.Field === col.Field && item.Type === col.Type && item.Key === col.Key);
+            // Update column match info
+            if (!columnCheck) columnMatch = false;
+            // Warning: This check may mislead if more than one PRIMARY KEY is defined in client's table.
+          }
+        });
+
+        // Update total check result
+        if (!tableMatch || !columnMatch) totalCheckResult = false;
+
+        // Create table row
+        let row = `<tr>
+        <td><a href="#" class="show-create-table" data-table="${table.table}">${table.table}</a></td>
+        <td>
+        <div class="select is-small is-fullwidth">
+        <select>
+        ${options}
+        </select>
+        </div>
+        </td>
+        <td><span class="tag ${tableMatch ? 'is-success' : 'is-danger'}">${tableMatch ? 'OK' : 'NOK'}</span></td>
+        <td><span class="tag ${columnMatch ? 'is-success' : 'is-danger'}">${columnMatch ? 'OK' : 'NOK'}</span></td>
+        </tr>`;
+
+        // Insert elements
+        checkTable.insertAdjacentHTML('beforeend', row);
+
+        // Show CREATE TABLE query when clicked on table name link
+        checkTable.lastChild.querySelector('.show-create-table').addEventListener('click', function() {
+          window.ipcRender.send('messageToMain', {channel: 'show-create-table', tableName: table.table, machineId: data.databases.machineId});
+        });
+
+      });
+
+      // Show
+      if (totalCheckResult) {
+        modalDatabaseHelper('Ready to bind', 'is-success');
+      } else {
+        modalDatabaseHelper('Server database does not match with client\'s', 'is-danger');
+      }
+
+
+    }
+    break;
+    case 'show-create-table':
+    // Check if there is any error
+    if (data.hasOwnProperty('error')) {
+      // Print error if exist
+      modalDatabaseHelper(data.error, 'is-danger');
+    } else {
+      modalShowCreate.value = data.showCreate.response[0]['Create Table'];
+    }
     break;
     case 'new-client':
     appendClient(data.client);

@@ -176,8 +176,14 @@ async function connectToServer() {
     socket.on("check-databases", async (data) => {
       console.log("Socket called: check-databases");
       let db = await getDatabaseDetails(client.configs.mysqlDatabase);
-      console.log(db);
       socket.emit('check-databases', {clientDatabase: db, serverData: data});
+    });
+
+
+    socket.on("show-create-table", async (data) => {
+      console.log("Socket called: show-create-table");
+      let showCreate = await showCreateTable(data.tableName);
+      socket.emit('show-create-table', {showCreate: showCreate});
     });
 
 
@@ -244,4 +250,15 @@ async function getDatabaseDetails(selectedDatabase) {
   }
 
   return db;
+}
+
+
+async function showCreateTable(tableName) {
+
+  // Catch errors
+  if (client.database.connection !== true) return {error: 'No database connection!'};
+
+  let showCreate = await sqlQuery(`SHOW CREATE TABLE ${tableName};`);
+
+  return showCreate;
 }

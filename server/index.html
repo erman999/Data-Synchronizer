@@ -128,7 +128,7 @@
 
         <div class="field is-horizontal">
           <div class="field-label has-text-left is-normal">
-            <label class="label">Client Tables</label>
+            <label class="label">Check Result</label>
           </div>
           <div class="field-body">
             <div class="field">
@@ -136,61 +136,18 @@
                 <table id="modal-tables" class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth">
                   <thead>
                     <tr>
+                      <th colspan="2" class="has-background-success-light has-text-success">Client Setup</th>
+                      <th colspan="2" class="has-background-link-light has-text-link">Server Match</th>
+                    </tr>
+                    <tr>
                       <th>Table</th>
-                      <th>Watch</th>
-                      <th>Sync</th>
-                      <th>Result</th>
+                      <th>Column</th>
+                      <th>Table</th>
+                      <th>Column</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td><a href="#">ateqtest</a></td>
-                      <td>ateqTestId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">counter</a></td>
-                      <td>counterId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">kaynak</a></td>
-                      <td>kaynakId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">login</a></td>
-                      <td>loginId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">personellist</a></td>
-                      <td>personelListId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">sicaktest</a></td>
-                      <td>sicakTestId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">sifre</a></td>
-                      <td>sifreId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
-                    <tr>
-                      <td><a href="#">soguktest</a></td>
-                      <td>sogukTestId</td>
-                      <td>0/0</td>
-                      <td><span class="tag is-success">OK</span></td>
-                    </tr>
+                    <!-- Check results -->
                   </tbody>
                 </table>
               </div>
@@ -206,7 +163,7 @@
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea is-small has-text-grey has-background-white-ter" rows="10" readonly></textarea>
+                <textarea id="modal-show-create" class="textarea is-small has-text-grey has-background-white-ter" rows="6" readonly></textarea>
               </div>
             </div>
           </div>

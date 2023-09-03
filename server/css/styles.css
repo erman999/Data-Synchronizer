@@ -49,15 +49,23 @@ button.is-danger .icon {
   vertical-align: middle !important;
 }
 
-#modal-tables thead th:nth-child(3), #modal-tables tbody td:nth-child(3) {
+#modal-tables tbody td .select.is-small {
+  font-size: 0.7rem;
+}
+
+#modal-tables thead tr:nth-child(1) th {
   text-align: center !important;
 }
 
-#modal-tables thead th:nth-child(4), #modal-tables tbody td:nth-child(4) {
+#modal-tables thead th:nth-child(n+2), #modal-tables tbody td:nth-child(n+2) {
   text-align: center !important;
 }
 
-#modal-tables tbody td:nth-child(4) .tag {
+#modal-tables tbody td:nth-child(n+3) {
+  width: 65px;
+}
+
+#modal-tables tbody td .tag {
   max-height: 20px;
 }
 
