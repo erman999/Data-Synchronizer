@@ -50,7 +50,7 @@
 
 
   <!-- Configs modal -->
-  <div id="modal" class="modal is-active">
+  <div id="modal" class="modal">
     <div class="modal-background"></div>
     <div class="modal-card">
       <header class="modal-card-head p-4">
@@ -119,7 +119,7 @@
               <div class="buttons control">
                 <button id="modal-refresh-button" class="button is-small is-primary">Refresh</button>
                 <button id="modal-check-button" class="button is-small is-warning">Check</button>
-                <button id="modal-bind-button" class="button is-small is-link">Bind</button>
+                <button id="modal-bind-button" data-lock="0" class="button is-small is-link" disabled>Bind</button>
               </div>
             </div>
           </div>
@@ -172,7 +172,7 @@
       </section>
       <footer class="modal-card-foot p-4 is-flex is-justify-content-flex-end">
         <button class="cancel button is-small">Close</button>
-        <button class="button is-small is-success">Save</button>
+        <button id="modal-save-button" class="button is-small is-success" disabled>Save</button>
       </footer>
     </div>
   </div>

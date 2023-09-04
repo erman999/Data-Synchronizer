@@ -219,8 +219,8 @@ io.on('connection', (socket) => {
     if (clientIndex === -1) {
       // Add a name for client name
       client.name = client.machineId.split('-')[0];
-      // Add registration object
-      client.registration = {completed: false};
+      // Add binding object
+      client.binding = {binded: false};
       // Add this client to clients
       server.clients.push(client);
       // Save clients file
@@ -228,9 +228,11 @@ io.on('connection', (socket) => {
       // Tell user register/setup required.
       mainWindow.webContents.send('messageFromMain', {channel: 'new-client', client});
     } else {
+
       // Add preserved values to client
       client.name = server.clients[clientIndex].name;
-      client.registration = server.clients[clientIndex].registration;
+      // FIXME: Remove "?? {binded: false}" statement after production
+      client.binding = server.clients[clientIndex].binding ?? {binded: false};
       // Update clients on server
       server.clients[clientIndex] = client;
       // Save clients
@@ -321,8 +323,12 @@ ipcMain.on('messageToMain', async (event, data) => {
       mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'Client not found!'});
     } else {
       console.log("Client found");
-      let socketId = server.clients[clientIndex].socketId;
-      io.to(socketId).emit('check-databases', data);
+      if (!server.clients[clientIndex].socket.connection) {
+        mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'Client offline!'});
+      } else {
+        let socketId = server.clients[clientIndex].socketId;
+        io.to(socketId).emit('check-databases', data);
+      }
     }
 
     break;

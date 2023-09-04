@@ -15,8 +15,12 @@ let modalCheckBtn = document.querySelector('#modal-check-button');
 let modalBindBtn = document.querySelector('#modal-bind-button');
 let modalDatabaseHelp = document.querySelector('#modal-database-help');
 let modalShowCreate = document.querySelector('#modal-show-create');
+let modalSaveBtn = document.querySelector('#modal-save-button');
 
 
+// modalServerDatabases.addEventListener('change', function() {
+//   modalBindBtn.disabled = true;
+// });
 
 function modalDatabaseHelper(text, color) {
   let colors = ['is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
@@ -51,7 +55,39 @@ modalCheckBtn.addEventListener('click', function() {
 
 
 modalBindBtn.addEventListener('click', function() {
-  // This is were I left...
+
+  let userSelection = [];
+
+  let selectedDatabase = modalServerDatabases.options[modalServerDatabases.selectedIndex].value;
+
+  let selects = modalTables.querySelectorAll('tbody select');
+  selects.forEach((select, i) => {
+    let selTable = select.dataset.table;
+    let selColumn = select.options[select.selectedIndex].value;
+    userSelection.push({table: selTable, column: selColumn});
+    select.disabled = true;
+  });
+
+  let bindingOptions = {
+    machineId: modalMachineId.value.trim(),
+    binding: {
+      database: selectedDatabase,
+      tables: userSelection
+    }
+  };
+
+  console.log(bindingOptions);
+
+  modalBindBtn.textContent = 'Unbind';
+  modalBindBtn.classList.add('is-danger');
+  modalBindBtn.classList.remove('is-link');
+
+  // Disable/Enable some user functions
+  modalServerDatabases.disabled = true;
+  modalRefreshBtn.disabled = true;
+  modalCheckBtn.disabled = true;
+  modalSaveBtn.disabled = false;
+
 });
 
 
@@ -81,6 +117,13 @@ function appendClient(client) {
     modalClientdb.value = client.configs.mysqlDatabase;
     // Refresh databases
     window.ipcRender.send('messageToMain', {channel: 'server-databases'});
+    // Clear table
+    let checkTable = modalTables.querySelector('tbody');
+    while (checkTable.firstChild) {
+      checkTable.removeChild(checkTable.lastChild);
+    }
+    // Clear show create textarea
+    modalShowCreate.value = '';
   });
 
 }
@@ -211,7 +254,6 @@ window.ipcRender.receive('messageFromMain', (data) => {
             let columnCheck = serverDatabase[tableMatchIndex].fields.some(item => item.Field === col.Field && item.Type === col.Type && item.Key === col.Key);
             // Update column match info
             if (!columnCheck) columnMatch = false;
-            // Warning: This check may mislead if more than one PRIMARY KEY is defined in client's table.
           }
         });
 
@@ -220,10 +262,10 @@ window.ipcRender.receive('messageFromMain', (data) => {
 
         // Create table row
         let row = `<tr>
-        <td><a href="#" class="show-create-table" data-table="${table.table}">${table.table}</a></td>
+        <td><a href="#" class="show-create-table">${table.table}</a></td>
         <td>
         <div class="select is-small is-fullwidth">
-        <select>
+        <select data-table="${table.table}">
         ${options}
         </select>
         </div>
@@ -245,11 +287,11 @@ window.ipcRender.receive('messageFromMain', (data) => {
       // Show
       if (totalCheckResult) {
         modalDatabaseHelper('Ready to bind', 'is-success');
+        modalBindBtn.disabled = false;
       } else {
         modalDatabaseHelper('Server database does not match with client\'s', 'is-danger');
+        modalBindBtn.disabled = true;
       }
-
-
     }
     break;
     case 'show-create-table':
