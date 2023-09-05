@@ -257,6 +257,7 @@ io.on('connection', (socket) => {
 
 
   socket.on('check-databases', async (data) => {
+    console.log("this data:", data);
     // Check for server database connection
     if (server.database.connection !== true) {
       mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'No database connection!'});
@@ -343,6 +344,37 @@ ipcMain.on('messageToMain', async (event, data) => {
       let socketId = server.clients[clientIndex2].socketId;
       io.to(socketId).emit('show-create-table', data);
     }
+
+    break;
+    case 'save-binding-details':
+
+    let clientIndex3 = server.clients.findIndex((client) => client.machineId === data.preparedBinding.machineId);
+    if (clientIndex3 === -1) {
+      console.log("Client not found!");
+      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
+    } else {
+      console.log("Client found");
+      server.clients[clientIndex3].binding = data.preparedBinding.binding;
+      saveClientsFile(server.clients);
+      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', success: 'Client details saved.'});
+    }
+
+    break;
+
+    case 'get-client-binding':
+
+    let clientIndex4 = server.clients.findIndex((client) => client.machineId === data.machineId);
+    if (clientIndex4 === -1) {
+      console.log("Binding: Client not found!");
+      // mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
+    } else {
+      console.log("Binding: Client found");
+      let bindingDetails = server.clients[clientIndex4].binding;
+      console.log(bindingDetails);
+      mainWindow.webContents.send('messageFromMain', {channel: 'get-client-binding', bindingDetails: bindingDetails});
+    }
+
+
 
     break;
     default:
