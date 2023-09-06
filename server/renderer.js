@@ -6,6 +6,8 @@ let database = document.querySelector('#database');
 let modal = document.querySelector('#modal');
 let modalMachineId = document.querySelector('#modal-machineId');
 let modalName = document.querySelector('#modal-name');
+let modalNameChange = document.querySelector('#modal-name-change');
+let modalNameHelp = document.querySelector('#modal-name-help');
 let modalClientdb = document.querySelector('#modal-clientdb');
 let modalTables = document.querySelector('#modal-tables');
 let modalServerDatabases = document.querySelector('#modal-server-databases');
@@ -48,6 +50,8 @@ document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .can
     modalShowCreate.value = '';
     // Clear preparedBinding global variable
     preparedBinding = {};
+    // Clear name helper
+    modalNameHelp.textContent = '';
     // Clear table
     let checkTable = modalTables.querySelector('tbody');
     while (checkTable.firstChild) {
@@ -72,6 +76,25 @@ modalCheckBtn.addEventListener('click', function() {
   } else {
     window.ipcRender.send('messageToMain', {channel: 'check-databases', info: data});
   }
+
+});
+
+modalNameChange.addEventListener('click', function() {
+  let name = modalName.value.trim();
+  let machineId = modalMachineId.value.trim();
+
+  window.ipcRender.invoke('invoker', {channel: 'change-name', name: name, machineId: machineId}).then((result) => {
+    console.log(result);
+    if (result.error) {
+      // If gives error just show error message
+      modalNameHelp.textContent = result.message;
+    } else {
+      // Show success message and update name
+      modalNameHelp.textContent = result.message;
+      let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
+      row.querySelector('.name').textContent = name;
+    }
+  });
 
 });
 
@@ -187,8 +210,10 @@ function appendClient(client) {
   table.lastChild.querySelector('.configs').addEventListener('click', function(e) {
     modal.classList.add('is-active');
     modalMachineId.value = client.machineId;
-    modalName.value = client.name;
     modalClientdb.value = client.configs.mysqlDatabase;
+
+    let row = document.querySelector(`tr[data-machineId="${client.machineId}"]`);
+    modalName.value = row.querySelector('.name').textContent;
 
     // Request client binding details
     window.ipcRender.send('messageToMain', {channel: 'get-client-binding', machineId: client.machineId});
@@ -430,12 +455,3 @@ window.ipcRender.receive('messageFromMain', (data) => {
     console.log('Called channel is not exist.');
   }
 });
-
-
-// SHOW KEYS FROM table WHERE Key_name = 'PRIMARY'
-// SELECT MAX(id) FROM tablename;
-
-
-// window.ipcRender.invoke('invoker', 'hello').then((result) => {
-//   console.log(result);
-// });

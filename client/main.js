@@ -187,6 +187,42 @@ async function connectToServer() {
     });
 
 
+    socket.on("max-id", async (client) => {
+      console.log("Socket called: max-id");
+      for (const tbl of client.binding.tables) {
+        let maxId = await sqlQuery(`SELECT MAX(\`${tbl.column}\`) AS maxId FROM \`${tbl.table}\`;`);
+        if (maxId.result) {
+          tbl.clientMaxId = maxId.response[0].maxId === null ? 0 : maxId.response[0].maxId;
+          tbl.clientError = false;
+        } else {
+          tbl.clientMaxId = 0;
+          tbl.clientError = true;
+        }
+      }
+      console.log(client);
+      socket.emit('max-id', client);
+    });
+
+
+
+
+    socket.on("transfer-data", async (client) => {
+      console.log("Socket called: transfer-data");
+
+
+      for (const tbl of client.binding.tables) {
+        let chunk = await sqlQuery(`SELECT * FROM \`${tbl.table}\` WHERE \`${tbl.column}\` > ${tbl.serverMaxId} LIMIT 100;`);
+        console.log(chunk);
+      }
+
+      console.log(client);
+      socket.emit('transfer-data', client);
+    });
+
+
+
+
+
   });
 }
 

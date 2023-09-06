@@ -96,7 +96,27 @@ async function startApp() {
 
   // Start database connection checker loop
   connectionChecker();
+
+  // Start max-id collector loop
+  setInterval(function() {
+    server.clients.forEach((client, i) => {
+      let clientData = {name: client.name, socket: client.socket.connection, database: client.database.connection, binded: client.binding.binded};
+      console.log(clientData);
+      // Check is client online, database connected and binding completed
+      if (client.socket.connection && client.database.connection && client.binding.binded) {
+        // Ask client for database and max id
+
+        // I left here...
+        // io.to(client.socketId).emit('max-id', client);
+      }
+    });
+  }, 30000);
+
+
+
 }
+
+
 
 // Read file in 'configs' folder
 async function readConfigFile(event, data) {
@@ -228,7 +248,6 @@ io.on('connection', (socket) => {
       // Tell user register/setup required.
       mainWindow.webContents.send('messageFromMain', {channel: 'new-client', client});
     } else {
-
       // Add preserved values to client
       client.name = server.clients[clientIndex].name;
       // FIXME: Remove "?? {binded: false}" statement after production
@@ -282,9 +301,41 @@ io.on('connection', (socket) => {
       mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', error: 'No database connection!'});
       return false;
     }
-
     mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', showCreate: data.showCreate});
+  });
 
+  socket.on('max-id', async (client) => {
+
+    for (const tbl of client.binding.tables) {
+      let maxId = await sqlQuery(`SELECT MAX(\`${tbl.column}\`) AS maxId FROM \`${client.binding.database}\`.\`${tbl.table}\`;`);
+      if (maxId.result) {
+        tbl.serverMaxId = maxId.response[0].maxId === null ? 0 : maxId.response[0].maxId;
+        tbl.serverError = false;
+      } else {
+        tbl.serverMaxId = 0;
+        tbl.serverError = true;
+      }
+    }
+
+    // Check is there any error. If so, returns 'true' else 'false'
+    let isThereAnyError = client.binding.tables.every(item => item.clientError === true || item.serverError === true);
+    if (isThereAnyError) {
+      // Display some error message on the screen
+      console.log("Some errors found!");
+      return false;
+    } else {
+      // Get missing data data
+      for (let tbl of client.binding.tables) {
+        // Check if client and server data doesn't match
+        if (tbl.clientMaxId !== tbl.serverMaxId) {
+          // Request data transfer
+          io.to(client.socketId).emit('transfer-data', client);
+        }
+      }
+    }
+
+    console.log(client.binding);
+    console.log("isThereAnyError:", isThereAnyError);
   });
 
 });
@@ -337,10 +388,10 @@ ipcMain.on('messageToMain', async (event, data) => {
 
     let clientIndex2 = server.clients.findIndex((client) => client.machineId === data.machineId);
     if (clientIndex2 === -1) {
-      console.log("Client not found!");
+      console.log("show-create-table: Client not found!");
       mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', error: 'Client not found!'});
     } else {
-      console.log("Client found");
+      console.log("show-create-table: Client found");
       let socketId = server.clients[clientIndex2].socketId;
       io.to(socketId).emit('show-create-table', data);
     }
@@ -350,10 +401,10 @@ ipcMain.on('messageToMain', async (event, data) => {
 
     let clientIndex3 = server.clients.findIndex((client) => client.machineId === data.preparedBinding.machineId);
     if (clientIndex3 === -1) {
-      console.log("Client not found!");
+      console.log("save-binding-details: Client not found!");
       mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
     } else {
-      console.log("Client found");
+      console.log("save-binding-details: Client found");
       server.clients[clientIndex3].binding = data.preparedBinding.binding;
       saveClientsFile(server.clients);
       mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', success: 'Client details saved.'});
@@ -403,7 +454,18 @@ async function getDatabaseDetails(selectedDatabase) {
 
 
 
-// ipcMain.handle('invoker', async (event, data) => {
-//   console.log("invoker:", data);
-//   return 'world';
-// });
+ipcMain.handle('invoker', async (event, data) => {
+  console.log("invoker:", data);
+
+  let clientIndex = server.clients.findIndex((client) => client.machineId === data.machineId);
+  if (clientIndex === -1) {
+    console.log("invoker: Client not found!");
+    return {error: true, message: 'Client not found!'};
+  } else {
+    console.log("invoker: Client found");
+    server.clients[clientIndex].name = data.name;
+    saveClientsFile(server.clients);
+    return {error: false, message: 'Name changed'};
+  }
+
+});

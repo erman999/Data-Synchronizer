@@ -77,10 +77,14 @@
             <label class="label">Name</label>
           </div>
           <div class="field-body">
-            <div class="field">
-              <div class="control">
+            <div class="field is-grouped">
+              <div class="control is-expanded">
                 <input id="modal-name" class="input is-small" type="text">
               </div>
+              <div class="control">
+                <button id="modal-name-change" class="button is-small is-success" type="button">Change</button>
+              </div>
+              <p id="modal-name-help" class="help is-success"></p>
             </div>
           </div>
         </div>
@@ -111,9 +115,7 @@
                   </select>
                 </div>
               </div>
-              <p id="modal-database-help" class="help">
-
-              </p>
+              <p id="modal-database-help" class="help"></p>
             </div>
             <div class="field is-flex-grow-0">
               <div class="buttons control">
