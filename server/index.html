@@ -51,7 +51,7 @@
 
 
   <!-- Configs modal -->
-  <div id="modal" class="modal">
+  <div id="modal" class="modal is-active">
     <div class="modal-background"></div>
     <div class="modal-card">
       <header class="modal-card-head p-4">
@@ -168,6 +168,21 @@
               <div class="control">
                 <textarea id="modal-show-create" class="textarea is-small has-text-grey has-background-white-ter" rows="6" readonly></textarea>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label has-text-left is-normal">
+            <label class="label">Delete Client</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <button id="modal-delete-button" class="button is-small is-danger" type="button">Delete</button>
+                <button id="modal-confirm-button" class="button is-small is-hidden is-success" type="button">Confirm</button>
+              </div>
+              <p id="modal-delete-help" class="help is-danger is-hidden">Click 'Confirm' button to delete this client.</p>
             </div>
           </div>
         </div>

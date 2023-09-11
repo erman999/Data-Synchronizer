@@ -425,7 +425,19 @@ ipcMain.on('messageToMain', async (event, data) => {
       mainWindow.webContents.send('messageFromMain', {channel: 'get-client-binding', bindingDetails: bindingDetails});
     }
 
+    break;
+    case 'delete-client':
 
+    let clientIndex5 = server.clients.findIndex((client) => client.machineId === data.machineId);
+    if (clientIndex5 === -1) {
+      console.log("Delete: Client not found!");
+      // mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
+    } else {
+      console.log("Delete: Client found");
+      server.clients.splice(clientIndex5, 1);
+      saveClientsFile(server.clients);
+      mainWindow.webContents.send('messageFromMain', {channel: 'delete-client', machineId: data.machineId});
+    }
 
     break;
     default:

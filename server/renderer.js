@@ -1,7 +1,8 @@
-// App essential elements
+// Essentials
 let serverIp = document.querySelector('#serverIp');
 let port = document.querySelector('#port');
 let database = document.querySelector('#database');
+
 // Modal elements
 let modal = document.querySelector('#modal');
 let modalMachineId = document.querySelector('#modal-machineId');
@@ -16,9 +17,24 @@ let modalCheckBtn = document.querySelector('#modal-check-button');
 let modalBindBtn = document.querySelector('#modal-bind-button');
 let modalDatabaseHelp = document.querySelector('#modal-database-help');
 let modalShowCreate = document.querySelector('#modal-show-create');
+let modalDeleteBtn = document.querySelector('#modal-delete-button');
+let modalConfirmBtn = document.querySelector('#modal-confirm-button');
+let modalDeleteHelp = document.querySelector('#modal-delete-help');
 let modalSaveBtn = document.querySelector('#modal-save-button');
+
 // Global variables
 let preparedBinding = {};
+
+
+modalDeleteBtn.addEventListener('click', function() {
+  modalConfirmBtn.classList.toggle('is-hidden');
+  modalDeleteHelp.classList.toggle('is-hidden');
+});
+
+modalConfirmBtn.addEventListener('click', function() {
+  let machineId = modalMachineId.value.trim();
+  window.ipcRender.send('messageToMain', {channel: 'delete-client', machineId: machineId});
+});
 
 function modalDatabaseHelper(text, color) {
   let colors = ['is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
@@ -50,8 +66,11 @@ document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .can
     modalShowCreate.value = '';
     // Clear preparedBinding global variable
     preparedBinding = {};
-    // Clear name helper
+    // Clear helpers
     modalNameHelp.textContent = '';
+    // Hide Delete elements
+    modalConfirmBtn.classList.add('is-hidden');
+    modalDeleteHelp.classList.add('is-hidden');
     // Clear table
     let checkTable = modalTables.querySelector('tbody');
     while (checkTable.firstChild) {
@@ -196,9 +215,9 @@ function appendClient(client) {
   <td><span class="server-connection tag ${client.socket.connection ? 'is-success' : 'is-danger'}">${client.socket.connection ? 'Connected': 'Disconnected'}</span></td>
   <td><span class="database-connection tag ${client.database.connection ? 'is-success' : 'is-danger'}">${client.database.connection ? 'Connected': 'Disconnected'}</span></td>
   <td>
-  <button class="sync button is-danger is-small">
+  <button class="sync button is-small ${client.binding.binded ? 'is-success' : 'is-danger'}">
   <span class="icon">
-  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#icon-cross"></use></svg>
+  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#${client.binding.binded ? 'icon-check' : 'icon-cross'}"></use></svg>
   </span>
   </button>
   </td>
@@ -448,6 +467,14 @@ window.ipcRender.receive('messageFromMain', (data) => {
     break;
     case 'get-client-binding':
     preparedBinding =  data.bindingDetails;
+    break;
+    case 'delete-client':
+    // Close modal window
+    document.querySelector('.modal .cancel').click();
+    // Find that row
+    let row = document.querySelector(`tr[data-machineId="${data.machineId}"]`);
+    // Remove the row
+    row.remove();
     break;
     case 'new-client':
     appendClient(data.client);

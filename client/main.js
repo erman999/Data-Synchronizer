@@ -65,10 +65,10 @@ let client = {
 async function startApp() {
 
   // Test amaçlıdır silinecek
-  client.machineId = 'test_' + 1000;
+  client.machineId = '0000001-5c1f-466e-9e82-2b8578e26265';
   // Test amaçlıdır silinecek
 
-  
+
 
   // Read config file
   const configs = await readConfigFile(null, 'configs.json');
