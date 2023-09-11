@@ -37,6 +37,14 @@ button.is-danger .icon {
   font-size: 0.9rem;
 }
 
+.sync {
+  min-width: 30px;
+}
+
+.sync.is-loading .icon {
+  display: none;
+}
+
 .table-server th, .table-server td, .table-clients th, #modal table {
   font-size: 0.9rem;
 }

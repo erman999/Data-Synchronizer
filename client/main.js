@@ -64,6 +64,12 @@ let client = {
 
 async function startApp() {
 
+  // Test amaçlıdır silinecek
+  client.machineId = 'test_' + 1000;
+  // Test amaçlıdır silinecek
+
+  
+
   // Read config file
   const configs = await readConfigFile(null, 'configs.json');
   client.configs = configs;

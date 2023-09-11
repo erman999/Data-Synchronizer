@@ -196,9 +196,16 @@ function appendClient(client) {
   <td><span class="server-connection tag ${client.socket.connection ? 'is-success' : 'is-danger'}">${client.socket.connection ? 'Connected': 'Disconnected'}</span></td>
   <td><span class="database-connection tag ${client.database.connection ? 'is-success' : 'is-danger'}">${client.database.connection ? 'Connected': 'Disconnected'}</span></td>
   <td>
+  <button class="sync button is-danger is-small">
+  <span class="icon">
+  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#icon-cross"></use></svg>
+  </span>
+  </button>
+  </td>
+  <td>
   <button class="configs button is-warning is-small">
   <span class="icon">
-  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#sliders"></use></svg>
+  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#icon-menu"></use></svg>
   </span>
   </button>
   </td>
