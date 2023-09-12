@@ -15,7 +15,8 @@ const ipc = {
     ],
     // From render to main and back again
     'sendReceive': [
-      'invoker'
+      'invoker',
+      'get-client'
     ]
   }
 };

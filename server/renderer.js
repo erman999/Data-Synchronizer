@@ -26,6 +26,49 @@ let modalSaveBtn = document.querySelector('#modal-save-button');
 let preparedBinding = {};
 
 
+function loopChecker(client) {
+  console.log('loopChecker: ', client.machineId);
+  console.log(client.socket.connection, client.database.connection, client.binding.binded);
+
+  // Check client ready for data transfer loop
+  if (client.socket.connection && client.database.connection && client.binding.binded) {
+    // Start loop
+    console.log("Client loop started.");
+    window.ipcRender.send('messageToMain', {channel: 'max-id', machineId: client.machineId});
+  } else {
+    // Wait for a while then try again
+    console.log("Client NOT ready for loop.");
+  }
+}
+
+function syncStyler(machineId, color) {
+  let colors = ['is-loading', 'is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
+
+  let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
+  let btn = document.querySelector('button.sync');
+  let svg = btn.querySelector('svg use');
+  let xlink = svg.getAttribute('xlink:href').split('#');
+
+  btn.classList.remove(...colors);
+
+  switch (color) {
+    case 'is-loading':
+    btn.classList.add('is-loading', 'is-link');
+    break;
+    case 'is-success':
+    btn.classList.add('is-success');
+    svg.setAttribute('xlink:href', xlink[0] + '#icon-check');
+    break;
+    case 'is-danger':
+    btn.classList.add('is-danger');
+    svg.setAttribute('xlink:href', xlink[0] + '#icon-cross');
+    break;
+    default:
+    // Nothing to do here
+  }
+}
+
+
 modalDeleteBtn.addEventListener('click', function() {
   modalConfirmBtn.classList.toggle('is-hidden');
   modalDeleteHelp.classList.toggle('is-hidden');
@@ -203,7 +246,6 @@ modalBindBtn.addEventListener('click', function() {
 
 
 modalSaveBtn.addEventListener('click', function() {
-  console.log("Save button clicked.");
   window.ipcRender.send('messageToMain', {channel: 'save-binding-details', preparedBinding: preparedBinding});
 });
 
@@ -234,15 +276,26 @@ function appendClient(client) {
   table.insertAdjacentHTML('beforeend', html);
 
   table.lastChild.querySelector('.configs').addEventListener('click', function(e) {
-    modal.classList.add('is-active');
-    modalMachineId.value = client.machineId;
-    modalClientdb.value = client.configs.mysqlDatabase;
+
+
+    window.ipcRender.invoke('get-client', {machineId: client.machineId}).then((thisClient) => {
+      console.log('get-client', thisClient);
+
+      modal.classList.add('is-active');
+      modalMachineId.value = thisClient.machineId;
+      modalClientdb.value = thisClient.configs.mysqlDatabase;
+
+      let bindingDetails = {
+        machineId: thisClient.machineId,
+        binding: thisClient.binding
+      };
+
+      preparedBinding = bindingDetails;
+
+    });
 
     let row = document.querySelector(`tr[data-machineId="${client.machineId}"]`);
     modalName.value = row.querySelector('.name').textContent;
-
-    // Request client binding details
-    window.ipcRender.send('messageToMain', {channel: 'get-client-binding', machineId: client.machineId});
 
     // Refresh databases
     window.ipcRender.send('messageToMain', {channel: 'server-databases'});
@@ -265,6 +318,7 @@ function updateClient(client) {
   databaseConnectionCol.classList.add(client.database.connection ? 'is-success' : 'is-danger');
   databaseConnectionCol.classList.remove(client.database.connection ? 'is-danger' : 'is-success');
 
+  loopChecker(client);
 }
 
 window.ipcRender.receive('messageFromMain', (data) => {
@@ -463,10 +517,8 @@ window.ipcRender.receive('messageFromMain', (data) => {
     } else {
       // Print success message
       modalDatabaseHelper(data.success, 'is-success');
+      loopChecker(data.client);
     }
-    break;
-    case 'get-client-binding':
-    preparedBinding =  data.bindingDetails;
     break;
     case 'delete-client':
     // Close modal window
@@ -475,6 +527,9 @@ window.ipcRender.receive('messageFromMain', (data) => {
     let row = document.querySelector(`tr[data-machineId="${data.machineId}"]`);
     // Remove the row
     row.remove();
+    break;
+    case 'transfer-data':
+    // HERE
     break;
     case 'new-client':
     appendClient(data.client);

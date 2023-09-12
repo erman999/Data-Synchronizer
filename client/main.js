@@ -215,13 +215,15 @@ async function connectToServer() {
     socket.on("transfer-data", async (client) => {
       console.log("Socket called: transfer-data");
 
+      client.binding.insert = [];
 
       for (const tbl of client.binding.tables) {
-        let chunk = await sqlQuery(`SELECT * FROM \`${tbl.table}\` WHERE \`${tbl.column}\` > ${tbl.serverMaxId} LIMIT 100;`);
+        let chunk = await sqlQuery(`SELECT * FROM \`${tbl.table}\` WHERE \`${tbl.column}\` > ${tbl.serverMaxId} LIMIT 5;`);
+        chunk.table = tbl.table;
         console.log(chunk);
+        client.binding.insert.push(chunk);
       }
 
-      console.log(client);
       socket.emit('transfer-data', client);
     });
 

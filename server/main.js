@@ -97,21 +97,21 @@ async function startApp() {
   // Start database connection checker loop
   connectionChecker();
 
-  // Start max-id collector loop
-  setInterval(function() {
-    server.clients.forEach((client, i) => {
-      let clientData = {name: client.name, socket: client.socket.connection, database: client.database.connection, binded: client.binding.binded};
-      console.log(clientData);
-      // Check is client online, database connected and binding completed
-      if (client.socket.connection && client.database.connection && client.binding.binded) {
-        // Ask client for database and max id
-
-        // I left here...
-        // io.to(client.socketId).emit('max-id', client);
-      }
-    });
-  }, 30000);
-
+  // // Start max-id collector loop
+  // setInterval(function() {
+  //   server.clients.forEach((client, i) => {
+  //     let clientData = {name: client.name, socket: client.socket.connection, database: client.database.connection, binded: client.binding.binded};
+  //     console.log(clientData);
+  //     // Check is client online, database connected and binding completed
+  //     if (client.socket.connection && client.database.connection && client.binding.binded) {
+  //       // Ask client for database and max id
+  //
+  //       // I left here...
+  //       // io.to(client.socketId).emit('max-id', client);
+  //     }
+  //   });
+  // }, 30000);
+  //
 
 
 }
@@ -250,7 +250,7 @@ io.on('connection', (socket) => {
     } else {
       // Add preserved values to client
       client.name = server.clients[clientIndex].name;
-      // FIXME: Remove "?? {binded: false}" statement after production
+      // Add binding details
       client.binding = server.clients[clientIndex].binding ?? {binded: false};
       // Update clients on server
       server.clients[clientIndex] = client;
@@ -324,19 +324,51 @@ io.on('connection', (socket) => {
       console.log("Some errors found!");
       return false;
     } else {
-      // Get missing data data
-      for (let tbl of client.binding.tables) {
-        // Check if client and server data doesn't match
-        if (tbl.clientMaxId !== tbl.serverMaxId) {
-          // Request data transfer
-          io.to(client.socketId).emit('transfer-data', client);
-        }
-      }
+      io.to(client.socketId).emit('transfer-data', client);
     }
 
     console.log(client.binding);
     console.log("isThereAnyError:", isThereAnyError);
   });
+
+
+
+  socket.on('transfer-data', async (client) => {
+
+    // HAHAHAHAHAHAHAHAHAHAH
+    for (let tbl of client.binding.insert) {
+
+      if (tbl.result) {
+        for (let row of tbl.response) {
+
+          let keys = '';
+          let values = '';
+
+          for (const [key, value] of Object.entries(row)) {
+            keys += `\`${key}\`, `;
+            values += `${typeof row[key] === 'string' ? "'"+value+"'" : value}, `;
+          }
+
+          keys = keys.slice(0, -2);
+          values = values.slice(0, -2);
+
+          // console.log(keys);
+          // console.log(values);
+
+          console.log("------------");
+          console.log(`INSERT INTO \`${client.binding.database}\`.\`${tbl.table}\` (${keys}) VALUES (${values});`);
+          console.log("------------");
+        }
+      }
+
+    }
+
+
+    // let maxId = await sqlQuery(``);
+    mainWindow.webContents.send('messageFromMain', {channel: 'transfer-data', client: client});
+  });
+
+
 
 });
 
@@ -402,27 +434,12 @@ ipcMain.on('messageToMain', async (event, data) => {
     let clientIndex3 = server.clients.findIndex((client) => client.machineId === data.preparedBinding.machineId);
     if (clientIndex3 === -1) {
       console.log("save-binding-details: Client not found!");
-      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
+      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!', machineId: data.preparedBinding.machineId});
     } else {
       console.log("save-binding-details: Client found");
       server.clients[clientIndex3].binding = data.preparedBinding.binding;
       saveClientsFile(server.clients);
-      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', success: 'Client details saved.'});
-    }
-
-    break;
-
-    case 'get-client-binding':
-
-    let clientIndex4 = server.clients.findIndex((client) => client.machineId === data.machineId);
-    if (clientIndex4 === -1) {
-      console.log("Binding: Client not found!");
-      // mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
-    } else {
-      console.log("Binding: Client found");
-      let bindingDetails = server.clients[clientIndex4].binding;
-      console.log(bindingDetails);
-      mainWindow.webContents.send('messageFromMain', {channel: 'get-client-binding', bindingDetails: bindingDetails});
+      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', success: 'Client details saved.', client: server.clients[clientIndex3]});
     }
 
     break;
@@ -431,7 +448,6 @@ ipcMain.on('messageToMain', async (event, data) => {
     let clientIndex5 = server.clients.findIndex((client) => client.machineId === data.machineId);
     if (clientIndex5 === -1) {
       console.log("Delete: Client not found!");
-      // mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!'});
     } else {
       console.log("Delete: Client found");
       server.clients.splice(clientIndex5, 1);
@@ -439,6 +455,14 @@ ipcMain.on('messageToMain', async (event, data) => {
       mainWindow.webContents.send('messageFromMain', {channel: 'delete-client', machineId: data.machineId});
     }
 
+    break;
+    case 'max-id':
+    let client = getClientByMachineId(data.machineId);
+    if (client !== false) {
+      io.to(client.socketId).emit('max-id', client);
+    } else {
+      console.log("max-id: Client not found.");
+    }
     break;
     default:
     console.log(`This channel [${data.channel}] is not exist!`);
@@ -480,4 +504,24 @@ ipcMain.handle('invoker', async (event, data) => {
     return {error: false, message: 'Name changed'};
   }
 
+});
+
+
+
+function getClientByMachineId(machineId) {
+  let clientIndex = server.clients.findIndex((client) => client.machineId === machineId);
+  if (clientIndex === -1) {
+    return false;
+  } else {
+    return server.clients[clientIndex];
+  }
+}
+
+ipcMain.handle('get-client', async (event, data) => {
+  console.log("get-client:", data);
+
+  let client = getClientByMachineId(data.machineId);
+  console.log("getClientByMachineId:", client.machineId);
+
+  return client;
 });
