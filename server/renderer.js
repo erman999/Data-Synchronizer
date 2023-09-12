@@ -529,7 +529,10 @@ window.ipcRender.receive('messageFromMain', (data) => {
     row.remove();
     break;
     case 'transfer-data':
-    // HERE
+    setTimeout(function() {
+      console.log("Time is out...");
+      loopChecker(data.client);
+    }, 3000);
     break;
     case 'new-client':
     appendClient(data.client);

@@ -129,7 +129,7 @@ async function connectToDatabase() {
   return new Promise(async (resolve, reject) => {
     try {
       console.log("Trying to connect database...");
-      const pool  = mysql.createPool({host: client.configs.mysqlIp, user: client.configs.mysqlUser, password: client.configs.mysqlPassword, database: client.configs.mysqlDatabase});
+      const pool  = mysql.createPool({host: client.configs.mysqlIp, user: client.configs.mysqlUser, password: client.configs.mysqlPassword, database: client.configs.mysqlDatabase, dateStrings: true});
       const poolTest = pool.promise();
       const [rows, fields] = await poolTest.query("SELECT 1 AS connected;");
       promisePool = poolTest;

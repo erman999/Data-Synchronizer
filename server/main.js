@@ -97,23 +97,6 @@ async function startApp() {
   // Start database connection checker loop
   connectionChecker();
 
-  // // Start max-id collector loop
-  // setInterval(function() {
-  //   server.clients.forEach((client, i) => {
-  //     let clientData = {name: client.name, socket: client.socket.connection, database: client.database.connection, binded: client.binding.binded};
-  //     console.log(clientData);
-  //     // Check is client online, database connected and binding completed
-  //     if (client.socket.connection && client.database.connection && client.binding.binded) {
-  //       // Ask client for database and max id
-  //
-  //       // I left here...
-  //       // io.to(client.socketId).emit('max-id', client);
-  //     }
-  //   });
-  // }, 30000);
-  //
-
-
 }
 
 
@@ -135,7 +118,7 @@ async function connectToDatabase() {
   return new Promise(async (resolve, reject) => {
     try {
       console.log("Trying to connect database...");
-      const pool  = mysql.createPool({host: server.configs.mysqlIp, user: server.configs.mysqlUser, password: server.configs.mysqlPassword});
+      const pool  = mysql.createPool({host: server.configs.mysqlIp, user: server.configs.mysqlUser, password: server.configs.mysqlPassword, dateStrings: true});
       const poolTest = pool.promise();
       const [rows, fields] = await poolTest.query("SELECT 1 AS connected;");
       promisePool = poolTest;
@@ -355,13 +338,19 @@ io.on('connection', (socket) => {
           // console.log(keys);
           // console.log(values);
 
+          let query = `INSERT INTO \`${client.binding.database}\`.\`${tbl.table}\` (${keys}) VALUES (${values});`;
+
           console.log("------------");
-          console.log(`INSERT INTO \`${client.binding.database}\`.\`${tbl.table}\` (${keys}) VALUES (${values});`);
+          console.log(query);
+          let insert = await sqlQuery(query);
+          console.log(insert);
           console.log("------------");
         }
       }
 
     }
+
+    client.binding.insert = {};
 
 
     // let maxId = await sqlQuery(``);
