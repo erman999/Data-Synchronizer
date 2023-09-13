@@ -179,11 +179,26 @@ async function connectToServer() {
     });
 
 
-    socket.on("check-databases", async (data) => {
-      console.log("Socket called: check-databases");
+    // socket.on("compare-databases", async (data) => {
+    //   console.log("Socket called: compare-databases");
+    //   let db = await getDatabaseDetails(client.configs.mysqlDatabase);
+    //   socket.emit('compare-databases', {clientDatabase: db, serverData: data});
+    // });
+
+
+    socket.on("compare-databases", async (data, callback) => {
       let db = await getDatabaseDetails(client.configs.mysqlDatabase);
-      socket.emit('check-databases', {clientDatabase: db, serverData: data});
+      callback(db);
     });
+
+
+    // Not necessary any more
+    // socket.on("check-databases", async (data) => {
+    //   console.log("Socket called: check-databases");
+    //   let db = await getDatabaseDetails(client.configs.mysqlDatabase);
+    //   socket.emit('check-databases', {clientDatabase: db, serverData: data});
+    // });
+    // Not necessary any more
 
 
     socket.on("show-create-table", async (data) => {

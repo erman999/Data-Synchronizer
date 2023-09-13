@@ -4,19 +4,25 @@ const ipcRenderer = require('electron').ipcRenderer;
 
 // White-listed channels
 const ipc = {
+  // From render to main
   'render': {
-    // From render to main
     'send': [
-      'messageToMain'
+      'messageToMain',
+      'compare-databases'
     ],
     // From main to render
     'receive': [
-      'messageFromMain'
+      'messageFromMain',
+      'new-client',
+      'registered-client',
+      'update-client'
     ],
     // From render to main and back again
     'sendReceive': [
-      'invoker',
-      'get-client'
+      'get-client',
+      'refresh-databases',
+      'compare-databases',
+      'change-name'
     ]
   }
 };
