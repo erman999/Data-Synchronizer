@@ -432,19 +432,6 @@ ipcMain.on('messageToMain', async (event, data) => {
     }
 
     break;
-    case 'delete-client':
-
-    let clientIndex5 = server.clients.findIndex((client) => client.machineId === data.machineId);
-    if (clientIndex5 === -1) {
-      console.log("Delete: Client not found!");
-    } else {
-      console.log("Delete: Client found");
-      server.clients.splice(clientIndex5, 1);
-      saveClientsFile(server.clients);
-      mainWindow.webContents.send('messageFromMain', {channel: 'delete-client', machineId: data.machineId});
-    }
-
-    break;
     case 'max-id':
     let client = getClientByMachineId(data.machineId);
     if (client !== false) {
@@ -459,7 +446,14 @@ ipcMain.on('messageToMain', async (event, data) => {
 });
 
 
-
+function getClientByMachineId(machineId) {
+  let clientIndex = server.clients.findIndex((client) => client.machineId === machineId);
+  if (clientIndex === -1) {
+    return false;
+  } else {
+    return server.clients[clientIndex];
+  }
+}
 
 
 async function getDatabaseDetails(selectedDatabase) {
@@ -481,6 +475,21 @@ async function getDatabaseDetails(selectedDatabase) {
 }
 
 
+ipcMain.handle('delete-client', async (event, data) => {
+  console.log("delete-client:", data);
+
+  let clientIndex = server.clients.findIndex((client) => client.machineId === data.machineId);
+  if (clientIndex === -1) {
+    return {error: true, message: 'Client not found!'};
+  } else {
+    server.clients.splice(clientIndex, 1);
+    saveClientsFile(server.clients);
+    return {error: false, message: 'Client deleted'};
+  }
+
+});
+
+
 ipcMain.handle('change-name', async (event, data) => {
   console.log("change-name:", data);
   let client = getClientByMachineId(data.machineId);
@@ -490,16 +499,6 @@ ipcMain.handle('change-name', async (event, data) => {
   return {error: false, message: 'Name changed'};
 });
 
-
-
-function getClientByMachineId(machineId) {
-  let clientIndex = server.clients.findIndex((client) => client.machineId === machineId);
-  if (clientIndex === -1) {
-    return false;
-  } else {
-    return server.clients[clientIndex];
-  }
-}
 
 ipcMain.handle('get-client', async (event, data) => {
   console.log("get-client:", data);

@@ -102,7 +102,31 @@ modalDeleteBtn.addEventListener('click', function() {
 
 modalConfirmBtn.addEventListener('click', function() {
   let machineId = modalMachineId.value.trim();
-  window.ipcRender.send('messageToMain', {channel: 'delete-client', machineId: machineId});
+
+  window.ipcRender.invoke('delete-client', {machineId: machineId}).then((result) => {
+    console.log("delete-client:", result);
+
+    if (result.error) {
+      // If gives error just show error message
+      modalNameHelp.textContent = result.message;
+      toast('danger', result.message);
+      return;
+    }
+
+    // Close modal window
+    document.querySelector('.modal .cancel').click();
+    // Find that row
+    let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
+    // Remove the row
+    row.remove();
+    // Show notification
+    toast('success', result.message);
+
+  });
+
+
+
+
 });
 
 function modalDatabaseHelper(text, color) {
@@ -514,14 +538,6 @@ window.ipcRender.receive('messageFromMain', (data) => {
       loopChecker(data.client);
     }
     break;
-    case 'delete-client':
-    // Close modal window
-    document.querySelector('.modal .cancel').click();
-    // Find that row
-    let row = document.querySelector(`tr[data-machineId="${data.machineId}"]`);
-    // Remove the row
-    row.remove();
-    break;
     case 'transfer-data':
     setTimeout(function() {
       console.log("Time is out...");
@@ -558,3 +574,38 @@ window.ipcRender.receive('update-client', (client) => {
   console.log({channel: 'update-client', client: client});
   updateClient(client);
 });
+
+
+
+
+function toast(type, message) {
+
+  let body = document.querySelector('body');
+
+  body.querySelectorAll('.notification').forEach((el, i) => {
+    el.remove();
+  });
+
+  let html = `<div class="notification is-${type === 'success' ? 'success' : 'danger'}">
+  <button class="delete"></button>
+  <div class="is-flex is-align-items-center">
+  <span class="icon">
+  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#icon-${type === 'success' ? 'check' : 'cross'}"></use></svg>
+  </span>
+  <span class="ml-2">${message}</span>
+  </div>
+  </div>`;
+
+  body.insertAdjacentHTML('beforeend', html);
+
+  let lastChild = body.lastChild;
+
+  lastChild.querySelector('.delete').addEventListener('click', function() {
+    lastChild.remove();
+  });
+
+  setTimeout(function() {
+    lastChild.remove();
+  }, 3000);
+
+}

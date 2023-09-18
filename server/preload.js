@@ -22,7 +22,8 @@ const ipc = {
       'get-client',
       'refresh-databases',
       'compare-databases',
-      'change-name'
+      'change-name',
+      'delete-client'
     ]
   }
 };

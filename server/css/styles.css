@@ -84,3 +84,18 @@ button.is-danger .icon {
 #modal .modal-card-foot .button {
   min-width: 4rem;
 }
+
+
+.notification {
+  display: block;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  max-width: 300px;
+  font-size: 14px;
+  z-index: 9999;
+}
+
+.notification .icon {
+  fill: white !important;
+}
