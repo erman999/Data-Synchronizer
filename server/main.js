@@ -255,58 +255,36 @@ io.on('connection', (socket) => {
   });
 
 
-  // socket.on('check-databases', async (data) => {
-  //   console.log("check-databases:", data);
+
+  // socket.on('compare-databases', async (data) => {
+  //   console.log("compare-databases:", data);
   //   // Check for server database connection
-  //   if (server.database.connection !== true) {
-  //     mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'No database connection!'});
+  //   if (!server.database.connection) {
+  //     // Server is not connected to a database
+  //     // FIXME: Add error message here
   //     return false;
   //   }
-  //
-  //   // Get server/target database name
-  //   let selectedDatabase = data.serverData.info.selectedDatabase;
-  //   let machineId = data.serverData.info.machineId;
-  //
+  //   // Get client
+  //   let client = getClientByMachineId(data.serverData.machineId);
+  //   // Organise client information
+  //   let selectedDatabase = client.binding.database;
+  //   let machineId = client.machineId;
+  //   // Get server database details
   //   let serverDatabase = await getDatabaseDetails(selectedDatabase);
+  //   // Set received client database details
   //   let clientDatabase = data.clientDatabase;
-  //   mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: machineId}});
-  //
+  //   // Send data back to renderer
+  //   // mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: machineId}});
   // });
 
 
 
-
-  socket.on('compare-databases', async (data) => {
-    console.log("compare-databases:", data);
-    // Check for server database connection
-    if (!server.database.connection) {
-      // Server is not connected to a database
-      // FIXME: Add error message here
-      return false;
-    }
-    // Get client
-    let client = getClientByMachineId(data.serverData.machineId);
-    // Organise client information
-    let selectedDatabase = client.binding.database;
-    let machineId = client.machineId;
-    // Get server database details
-    let serverDatabase = await getDatabaseDetails(selectedDatabase);
-    // Set received client database details
-    let clientDatabase = data.clientDatabase;
-    // Send data back to renderer
-    // mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: machineId}});
-  });
-
-
-
   socket.on('show-create-table', async (data) => {
-    // Check for server database connection
-    if (server.database.connection !== true) {
-      mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', error: 'No database connection!'});
-      return false;
-    }
-    mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', showCreate: data.showCreate});
+    mainWindow.webContents.send('show-create-table', {showCreate: data.showCreate});
   });
+
+
+
 
   socket.on('max-id', async (client) => {
 
@@ -388,50 +366,7 @@ io.on('connection', (socket) => {
 ipcMain.on('messageToMain', async (event, data) => {
   console.log(data);
   switch (data.channel) {
-    // case 'check-databases':
-    //
-    // let clientIndex = server.clients.findIndex((client) => client.machineId === data.info.machineId);
-    // if (clientIndex === -1) {
-    //   console.log("Client not found!");
-    //   mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'Client not found!'});
-    // } else {
-    //   console.log("Client found");
-    //   if (!server.clients[clientIndex].socket.connection) {
-    //     mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'Client offline!'});
-    //   } else {
-    //     let socketId = server.clients[clientIndex].socketId;
-    //     io.to(socketId).emit('check-databases', data);
-    //   }
-    // }
-    //
-    // break;
-    case 'show-create-table':
 
-    let clientIndex2 = server.clients.findIndex((client) => client.machineId === data.machineId);
-    if (clientIndex2 === -1) {
-      console.log("show-create-table: Client not found!");
-      mainWindow.webContents.send('messageFromMain', {channel: 'show-create-table', error: 'Client not found!'});
-    } else {
-      console.log("show-create-table: Client found");
-      let socketId = server.clients[clientIndex2].socketId;
-      io.to(socketId).emit('show-create-table', data);
-    }
-
-    break;
-    case 'save-binding-details':
-
-    let clientIndex3 = server.clients.findIndex((client) => client.machineId === data.preparedBinding.machineId);
-    if (clientIndex3 === -1) {
-      console.log("save-binding-details: Client not found!");
-      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', error: 'Client not found!', machineId: data.preparedBinding.machineId});
-    } else {
-      console.log("save-binding-details: Client found");
-      server.clients[clientIndex3].binding = data.preparedBinding.binding;
-      saveClientsFile(server.clients);
-      mainWindow.webContents.send('messageFromMain', {channel: 'save-binding-details', success: 'Client details saved.', client: server.clients[clientIndex3]});
-    }
-
-    break;
     case 'max-id':
     let client = getClientByMachineId(data.machineId);
     if (client !== false) {
@@ -444,6 +379,30 @@ ipcMain.on('messageToMain', async (event, data) => {
     console.log(`This channel [${data.channel}] is not exist!`);
   }
 });
+
+
+
+ipcMain.on('show-create-table', async (event, data) => {
+  console.log("show-create-table:", data);
+  let client = getClientByMachineId(data.machineId);
+  if (client === false) return {error: true, message: 'Client not found!'};
+  io.to(client.socketId).emit('show-create-table', data);
+});
+
+
+
+ipcMain.handle('save-binding-details', async (event, data) => {
+  console.log("save-binding-details:", data);
+  // Error
+  let client = getClientByMachineId(data.machineId);
+  if (client === false) return {error: true, message: 'Client not found!'};
+  // Success
+  client.binding = data.binding;
+  saveClientsFile(server.clients);
+  return {error: false, message: `Client binded to server '${data.binding.database}' database`};
+});
+
+
 
 
 function getClientByMachineId(machineId) {
@@ -529,7 +488,7 @@ ipcMain.handle('refresh-databases', async (event, data) => {
 
 
 ipcMain.on('compare-databases', async (event, data) => {
-  console.log("##############", data);
+  console.log('compare-databases:', data);
   // Get client
   let client = getClientByMachineId(data.machineId);
   // If client not found return error
@@ -541,26 +500,8 @@ ipcMain.on('compare-databases', async (event, data) => {
     let clientDatabase = response.length > 0 ? response[0] : [];
     let serverDatabase = await getDatabaseDetails(data.selectedDatabase);
     // let databases = {serverDatabase: serverDatabase, clientDatabase: clientDatabase};
-    mainWindow.webContents.send('messageFromMain', {channel: 'compare-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: data.machineId}});
+    // mainWindow.webContents.send('messageFromMain', {channel: 'compare-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: data.machineId}});
+
+    mainWindow.webContents.send('compare-databases', {machineId: client.machineId, databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase}});
   });
 });
-
-
-
-// socket.on('check-databases', async (data) => {
-//   console.log("check-databases:", data);
-//   // Check for server database connection
-//   if (server.database.connection !== true) {
-//     mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', error: 'No database connection!'});
-//     return false;
-//   }
-//
-//   // Get server/target database name
-//   let selectedDatabase = data.serverData.info.selectedDatabase;
-//   let machineId = data.serverData.info.machineId;
-//
-//   let serverDatabase = await getDatabaseDetails(selectedDatabase);
-//   let clientDatabase = data.clientDatabase;
-//   mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: machineId}});
-//
-// });

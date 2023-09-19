@@ -8,7 +8,6 @@ let modal = document.querySelector('#modal');
 let modalMachineId = document.querySelector('#modal-machineId');
 let modalName = document.querySelector('#modal-name');
 let modalNameChange = document.querySelector('#modal-name-change');
-let modalNameHelp = document.querySelector('#modal-name-help');
 let modalClientdb = document.querySelector('#modal-clientdb');
 let modalTables = document.querySelector('#modal-tables');
 let modalServerDatabases = document.querySelector('#modal-server-databases');
@@ -20,10 +19,6 @@ let modalShowCreate = document.querySelector('#modal-show-create');
 let modalDeleteBtn = document.querySelector('#modal-delete-button');
 let modalConfirmBtn = document.querySelector('#modal-confirm-button');
 let modalDeleteHelp = document.querySelector('#modal-delete-help');
-let modalSaveBtn = document.querySelector('#modal-save-button');
-
-// Global variables
-let preparedBinding = {};
 
 
 function refreshDatabases(data) {
@@ -94,25 +89,24 @@ function syncStyler(machineId, color) {
   }
 }
 
-
+// Button delete client
 modalDeleteBtn.addEventListener('click', function() {
+  // Confirm delete client
   modalConfirmBtn.classList.toggle('is-hidden');
+  // Show/Hide helper
   modalDeleteHelp.classList.toggle('is-hidden');
 });
 
-modalConfirmBtn.addEventListener('click', function() {
-  let machineId = modalMachineId.value.trim();
 
+// Button confirm delete client
+modalConfirmBtn.addEventListener('click', function() {
+  // Get machineId
+  let machineId = modalMachineId.value.trim();
+  // Delete client from main
   window.ipcRender.invoke('delete-client', {machineId: machineId}).then((result) => {
     console.log("delete-client:", result);
-
-    if (result.error) {
-      // If gives error just show error message
-      modalNameHelp.textContent = result.message;
-      toast('danger', result.message);
-      return;
-    }
-
+    // If gives error just show error message
+    if (result.error) return toast('danger', result.message);
     // Close modal window
     document.querySelector('.modal .cancel').click();
     // Find that row
@@ -121,20 +115,23 @@ modalConfirmBtn.addEventListener('click', function() {
     row.remove();
     // Show notification
     toast('success', result.message);
-
   });
-
-
-
-
 });
 
+
+// Database helper text
 function modalDatabaseHelper(text, color) {
+  // Define colors
   let colors = ['is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
+  // Remove current color
   modalDatabaseHelp.classList.remove(...colors);
+  // Add new color
   modalDatabaseHelp.classList.add(color);
+  // Append text
   modalDatabaseHelp.textContent = text;
 }
+
+
 
 function resetModalWindow() {
   // Close modal
@@ -143,10 +140,6 @@ function resetModalWindow() {
   modalMachineId.value = '';
   // Clear show create textarea
   modalShowCreate.value = '';
-  // Clear preparedBinding global variable
-  preparedBinding = {};
-  // Clear helpers
-  modalNameHelp.textContent = '';
   // Hide Delete elements
   modalConfirmBtn.classList.add('is-hidden');
   modalDeleteHelp.classList.add('is-hidden');
@@ -155,22 +148,16 @@ function resetModalWindow() {
   while (checkTable.firstChild) {
     checkTable.removeChild(checkTable.lastChild);
   }
-  // Update styling
-  modalBindBtn.textContent = 'Bind';
-  modalBindBtn.classList.add('is-link');
-  modalBindBtn.classList.remove('is-danger');
-  // Enable/Disable some buttons and selections
-  modalServerDatabases.disabled = false;
-  modalRefreshBtn.disabled = false;
-  modalCheckBtn.disabled = false;
-  modalBindBtn.disabled = true;
 }
 
 // Close modal window on various closing activities
 document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .cancel').forEach((el, i) => {
+  // Add elements to click listener
   el.addEventListener('click', resetModalWindow, false);
 });
 
+
+// Refresh server databases
 modalRefreshBtn.addEventListener('click', function() {
   // Request server databases
   window.ipcRender.invoke('refresh-databases', false).then((data) => {
@@ -178,89 +165,41 @@ modalRefreshBtn.addEventListener('click', function() {
   });
 });
 
+
+// Run a check diagnosis for Client-Server database match
 modalCheckBtn.addEventListener('click', function() {
+  // Check for database selection
+  if (modalServerDatabases.value == 0) return toast('danger', 'Please select a valid database!');
   // Get selected database & prepare data
   let data = {selectedDatabase: modalServerDatabases.value, machineId: modalMachineId.value.trim()};
   // Send to main
   window.ipcRender.send('compare-databases', data);
 });
 
+
+// Change client display name
 modalNameChange.addEventListener('click', function() {
-  // Get user values
+  // Get user info
   let name = modalName.value.trim();
   let machineId = modalMachineId.value.trim();
   // Send to main
   window.ipcRender.invoke('change-name', {name: name, machineId: machineId}).then((result) => {
     console.log("change-name:", result);
-    if (result.error) {
-      // If gives error just show error message
-      modalNameHelp.textContent = result.message;
-    } else {
-      // Show success message and update name
-      modalNameHelp.textContent = result.message;
-      let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
-      row.querySelector('.name').textContent = name;
-    }
+    // If gives error just show error message
+    if (result.error) return toast('danger', result.message);
+    // Show success message and update name
+    toast('success', result.message);
+    // Get main screen client row
+    let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
+    // Change name client's name on main screen
+    row.querySelector('.name').textContent = name;
   });
 });
 
 
-function lockModalFields(arg) {
-  if (arg) {
-    // Update styling
-    modalBindBtn.textContent = 'Bind';
-    modalBindBtn.classList.add('is-link');
-    modalBindBtn.classList.remove('is-danger');
-    // Enable/Disable some buttons and selections
-    modalServerDatabases.disabled = false;
-    modalRefreshBtn.disabled = false;
-    modalCheckBtn.disabled = false;
-    modalBindBtn.disabled = true;
-    // Disable table column selection
-    let selects = modalTables.querySelectorAll('tbody select');
-    selects.forEach((select, i) => {
-      select.disabled = false;
-    });
-    // Show helper text
-    modalDatabaseHelper('Database unbinded!', 'is-danger');
-  } else {
-    // Update button styling
-    modalBindBtn.textContent = 'Unbind';
-    modalBindBtn.classList.add('is-danger');
-    modalBindBtn.classList.remove('is-link');
-    // Enable/Disable some buttons and selections
-    modalServerDatabases.disabled = true;
-    modalRefreshBtn.disabled = true;
-    modalCheckBtn.disabled = true;
-    // Disable table column selection
-    let selects = modalTables.querySelectorAll('tbody select');
-    selects.forEach((select, i) => {
-      select.disabled = true;
-    });
-    // Show helper text
-    modalDatabaseHelper('Database binded. Ready to save.', 'is-success');
-  }
-}
-
 modalBindBtn.addEventListener('click', function() {
-
-  // Detect if user clicked Unbind button
-  if (preparedBinding.hasOwnProperty('binded') && preparedBinding.binded === true) {
-    // Lock/unlock modal binding fields
-    lockModalFields(true);
-
-    // Construct data pattern
-    let bindingDetails = {
-      machineId: modalMachineId.value.trim(),
-      binding: {binded: false}
-    };
-    preparedBinding = bindingDetails;
-    console.log(preparedBinding);
-    return false;
-  }
-
-  // Lock/unlock modal binding fields
-  lockModalFields(false);
+  // Get machineId
+  let machineId = modalMachineId.value.trim();
   // Get user database selection
   let selectedDatabase = modalServerDatabases.options[modalServerDatabases.selectedIndex].value;
   // Collect user selections in an array
@@ -274,26 +213,25 @@ modalBindBtn.addEventListener('click', function() {
     userSelection.push({table: selTable, column: selColumn});
   });
   // Construct data pattern
-  let bindingDetails = {
-    machineId: modalMachineId.value.trim(),
+  let bindingData = {
+    machineId: machineId,
     binding: {
       binded: true,
       database: selectedDatabase,
       tables: userSelection
     }
   };
-  // Put data in to global variable (save button will data read from here)
-  preparedBinding = bindingDetails;
-  console.log(preparedBinding);
-
+  // Send data to main
+  window.ipcRender.invoke('save-binding-details', bindingData).then((result) => {
+    console.log("save-binding-details:", result);
+    // Show error
+    if (result.error) return toast('danger', result.message);
+    // Find that row
+    // let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
+    // Show notification
+    toast('success', result.message);
+  });
 });
-
-
-modalSaveBtn.addEventListener('click', function() {
-  window.ipcRender.send('messageToMain', {channel: 'save-binding-details', preparedBinding: preparedBinding});
-});
-
-
 
 
 function selectDatabase(target) {
@@ -361,6 +299,8 @@ function appendClient(client) {
           let data = {selectedDatabase: thisClient.binding.database, machineId: modalMachineId.value.trim()};
           // Send to main
           window.ipcRender.send('compare-databases', data);
+        } else {
+          toast('danger', 'This client is not binded to any database!');
         }
       });
     });
@@ -387,6 +327,9 @@ function updateClient(client) {
 
   loopChecker(client);
 }
+
+
+
 
 window.ipcRender.receive('messageFromMain', (data) => {
   console.log(data);
@@ -422,111 +365,7 @@ window.ipcRender.receive('messageFromMain', (data) => {
       refreshDatabases(data);
     });
     break;
-    case 'compare-databases':
-    // Define shorthand variables
-    let clientDatabase = data.databases.clientDatabase;
-    let serverDatabase = data.databases.serverDatabase;
 
-    // Get only table body
-    let checkTable = modalTables.querySelector('tbody');
-
-    // Clear table
-    while (checkTable.firstChild) {
-      checkTable.removeChild(checkTable.lastChild);
-    }
-
-    // Watch results
-    let totalCheckResult = true;
-
-    // Loop for each client table
-    clientDatabase.forEach((table, i) => {
-      // Match info variables
-      let tableMatch = true;
-      let columnMatch = true;
-      // Check server table existance on target database
-      let tableMatchIndex = serverDatabase.findIndex(item => item.table === table.table);
-      // Update table match info
-      if (tableMatchIndex === -1) {
-        tableMatch = false;
-        columnMatch = false;
-      }
-      // HTML collector for option elements
-      let options = '';
-      // Loop through each table columns for client
-      table.fields.forEach((col, i) => {
-        // Create options
-        let option = `<option value="${col.Field}" ${col.Key === 'PRI' ? 'selected' : 'disabled'}>${col.Field} | ${col.Type} ${col.Key !== '' ? ' | (PRIMARY)' : '' }</option>`;
-        // Append in options
-        options += option;
-        // If table exists do a column check
-        if (tableMatch) {
-          // Check if server table matches with client's table columns
-          let columnCheck = serverDatabase[tableMatchIndex].fields.some(item => item.Field === col.Field && item.Type === col.Type && item.Key === col.Key);
-          // Update column match info
-          if (!columnCheck) columnMatch = false;
-        }
-      });
-
-      // Update total check result
-      if (!tableMatch || !columnMatch) totalCheckResult = false;
-
-      // Create table row
-      let row = `<tr>
-      <td><a href="#" class="show-create-table">${table.table}</a></td>
-      <td>
-      <div class="select is-small is-fullwidth">
-      <select data-table="${table.table}">
-      ${options}
-      </select>
-      </div>
-      </td>
-      <td><span class="tag ${tableMatch ? 'is-success' : 'is-danger'}">${tableMatch ? 'OK' : 'NOK'}</span></td>
-      <td><span class="tag ${columnMatch ? 'is-success' : 'is-danger'}">${columnMatch ? 'OK' : 'NOK'}</span></td>
-      </tr>`;
-
-      // Insert elements
-      checkTable.insertAdjacentHTML('beforeend', row);
-
-      // Show CREATE TABLE query when clicked on table name
-      checkTable.lastChild.querySelector('.show-create-table').addEventListener('click', function() {
-        window.ipcRender.send('messageToMain', {channel: 'show-create-table', tableName: table.table, machineId: data.databases.machineId});
-      });
-
-    });
-
-
-    if (preparedBinding.hasOwnProperty('binded') && preparedBinding.binded === true) {
-      // Update styling
-      modalBindBtn.textContent = 'Unbind';
-      modalBindBtn.classList.remove('is-link');
-      modalBindBtn.classList.add('is-danger');
-      // Enable/Disable buttons
-      modalServerDatabases.disabled = true;
-      modalRefreshBtn.disabled = true;
-      modalCheckBtn.disabled = true;
-      modalBindBtn.disabled = false;
-      // Show message
-      modalDatabaseHelper('Already binded', 'is-success');
-    } else {
-      if (totalCheckResult) {
-        modalDatabaseHelper('Ready to bind', 'is-success');
-        modalBindBtn.disabled = false;
-      } else {
-        modalDatabaseHelper('Server database does not match with client\'s', 'is-danger');
-        modalBindBtn.disabled = true;
-      }
-    }
-
-    break;
-    case 'show-create-table':
-    // Check if there is any error
-    if (data.hasOwnProperty('error')) {
-      // Print error if exist
-      modalDatabaseHelper(data.error, 'is-danger');
-    } else {
-      modalShowCreate.value = data.showCreate.response[0]['Create Table'];
-    }
-    break;
     case 'save-binding-details':
     // Check if there is any error
     if (data.hasOwnProperty('error')) {
@@ -544,18 +383,95 @@ window.ipcRender.receive('messageFromMain', (data) => {
       // loopChecker(data.client);
     }, 3000);
     break;
-    // case 'new-client':
-    // appendClient(data.client);
-    // break;
-    // case 'registered-client':
-    // updateClient(data.client);
-    // break;
-    // case 'update-client':
-    // updateClient(data.client);
-    // break;
+
     default:
     console.log('Called channel is not exist.');
   }
+});
+
+
+
+window.ipcRender.receive('compare-databases', (data) => {
+  console.log({channel: 'new-compare-databases', data: data});
+  // Define shorthand variables
+  let clientDatabase = data.databases.clientDatabase;
+  let serverDatabase = data.databases.serverDatabase;
+
+  // Get only table body
+  let checkTable = modalTables.querySelector('tbody');
+
+  // Clear table
+  while (checkTable.firstChild) {
+    checkTable.removeChild(checkTable.lastChild);
+  }
+
+  // Watch results
+  let totalCheckResult = true;
+
+  // Loop for each client table
+  clientDatabase.forEach((table, i) => {
+    // Match info variables
+    let tableMatch = true;
+    let columnMatch = true;
+    // Check server table existance on target database
+    let tableMatchIndex = serverDatabase.findIndex(item => item.table === table.table);
+    // Update table match info
+    if (tableMatchIndex === -1) {
+      tableMatch = false;
+      columnMatch = false;
+    }
+    // HTML collector for option elements
+    let options = '';
+    // Loop through each table columns for client
+    table.fields.forEach((col, i) => {
+      // Create options
+      let option = `<option value="${col.Field}" ${col.Key === 'PRI' ? 'selected' : 'disabled'}>${col.Field} | ${col.Type} ${col.Key !== '' ? ' | (PRIMARY)' : '' }</option>`;
+      // Append in options
+      options += option;
+      // If table exists do a column check
+      if (tableMatch) {
+        // Check if server table matches with client's table columns
+        let columnCheck = serverDatabase[tableMatchIndex].fields.some(item => item.Field === col.Field && item.Type === col.Type && item.Key === col.Key);
+        // Update column match info
+        if (!columnCheck) columnMatch = false;
+      }
+    });
+
+    // Update total check result
+    if (!tableMatch || !columnMatch) totalCheckResult = false;
+
+    // Create table row
+    let row = `<tr>
+    <td><a href="#" class="show-create-table">${table.table}</a></td>
+    <td>
+    <div class="select is-small is-fullwidth">
+    <select data-table="${table.table}">
+    ${options}
+    </select>
+    </div>
+    </td>
+    <td><span class="tag ${tableMatch ? 'is-success' : 'is-danger'}">${tableMatch ? 'OK' : 'NOK'}</span></td>
+    <td><span class="tag ${columnMatch ? 'is-success' : 'is-danger'}">${columnMatch ? 'OK' : 'NOK'}</span></td>
+    </tr>`;
+
+    // Insert elements
+    checkTable.insertAdjacentHTML('beforeend', row);
+
+    // Show CREATE TABLE query when clicked on table name
+    checkTable.lastChild.querySelector('.show-create-table').addEventListener('click', function() {
+      // window.ipcRender.send('messageToMain', {channel: 'show-create-table', tableName: table.table, machineId: data.machineId});
+      window.ipcRender.send('show-create-table', {machineId: data.machineId, tableName: table.table});
+    });
+
+  });
+
+});
+
+
+
+window.ipcRender.receive('show-create-table', (data) => {
+  console.log({channel: 'show-create-table', data: data});
+  modalShowCreate.value = data.showCreate.response[0]['Create Table'];
 });
 
 
@@ -608,4 +524,5 @@ function toast(type, message) {
     lastChild.remove();
   }, 3000);
 
+  return false;
 }
