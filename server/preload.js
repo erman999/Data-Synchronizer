@@ -7,18 +7,20 @@ const ipc = {
   // From render to main
   'render': {
     'send': [
-      'messageToMain',
       'compare-databases',
-      'show-create-table'
+      'show-create-table',
+      'max-id'
     ],
     // From main to render
     'receive': [
-      'messageFromMain',
+      'start',
+      'server-update',
       'new-client',
       'registered-client',
       'update-client',
       'compare-databases',
-      'show-create-table'
+      'show-create-table',
+      'transfer-data'
     ],
     // From render to main and back again
     'sendReceive': [
@@ -28,7 +30,6 @@ const ipc = {
       'change-name',
       'delete-client',
       'save-binding-details'
-
     ]
   }
 };

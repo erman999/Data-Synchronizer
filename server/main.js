@@ -1,8 +1,12 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const path = require('path')
+/***** Electron *****/
+// Require electron libraries
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
 
+// Define mainWindow as global variable
 let mainWindow;
 
+// Create main window
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -15,35 +19,35 @@ function createWindow () {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     }
-  })
-
-  mainWindow.loadFile('index.html')
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  });
+  // Load main HTML file
+  mainWindow.loadFile('index.html');
+  // Open the DevTools (optional)
+  // mainWindow.webContents.openDevTools();
 }
 
+// Start app
 app.whenReady().then(() => {
-  createWindow()
-
+  // Create window
+  createWindow();
+  // (macOS) Emitted when the application is activated
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   })
-
-  // DOMContentLoaded equivalent
+  // Emitted when the navigation is done. Kind of DOMContentLoaded equivalent
   mainWindow.webContents.once('did-finish-load', async () => {
     startApp();
   });
+});
 
-})
-
+// Emitted when all windows have been closed
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit()
-})
+  if (process.platform !== 'darwin') app.quit();
+});
 
 
-
-/********** Application Specific Codes **********/
+/***** Applicaton *****/
+// Call required libraries
 const fs = require('fs');
 const os = require('os');
 const mysql = require('mysql2');
@@ -51,8 +55,10 @@ const express = require('express')();
 const httpServer = require('http').createServer(express);
 const io = require('socket.io')(httpServer);
 
+// Store database connection pool
 let promisePool = {};
 
+// Store server variables
 let server = {
   configs: {},
   clients: [],
@@ -60,18 +66,14 @@ let server = {
   socket: {}
 };
 
-
-
+// Start application
 async function startApp() {
-
   // Read config file
   const configs = await readConfigFile(null, 'configs.json');
   server.configs = configs;
-
   // Read clients file
   const clients = await readConfigFile(null, 'clients.json');
   server.clients = clients;
-
   // Update registered clients connection status
   if (server.clients.length > 0) {
     server.clients.forEach((item, i) => {
@@ -79,27 +81,21 @@ async function startApp() {
       item.database.connection = false;
     });
   }
-
   // Try to connect database
   const isDatabaseConnected = await connectToDatabase();
   server.database = isDatabaseConnected;
-
-  // Start server
+  // Create HTTP server
   httpServer.listen(server.configs.port, () => {
     server.socket.connection = true;
     server.socket.serverIp = getIpAdresses().v4;
     server.socket.port = server.configs.port;
     console.log(server);
     console.log(`Server listening on port ${server.configs.port}`);
-    mainWindow.webContents.send('messageFromMain', {channel: 'start', server});
+    mainWindow.webContents.send('start', server);
   });
-
   // Start database connection checker loop
   connectionChecker();
-
 }
-
-
 
 // Read file in 'configs' folder
 async function readConfigFile(event, data) {
@@ -111,6 +107,14 @@ async function readConfigFile(event, data) {
     console.error(err.message);
     return false;
   }
+}
+
+// Save file to target location
+async function saveClientsFile(data) {
+  const filePath = path.join(__dirname, 'configs', 'clients.json');
+  await fs.promises.writeFile(filePath, JSON.stringify(data));
+  console.log("File [clients.json] saved.");
+  return true;
 }
 
 // Connect to database
@@ -130,7 +134,6 @@ async function connectToDatabase() {
   });
 }
 
-
 // Get external IP adresses (IPv4 & IPv6)
 function getIpAdresses() {
   let ip = {};
@@ -149,7 +152,6 @@ function getIpAdresses() {
   return ip;
 }
 
-
 // Run queries without crash
 async function sqlQuery(query) {
   try {
@@ -160,23 +162,21 @@ async function sqlQuery(query) {
   }
 }
 
-
 // Check database connection in given time interval
 function connectionChecker() {
   setInterval(async() => {
-
     // Database connection (Check connection on start and connect if not established)
     if (server.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
       server.database = isDatabaseConnected;
-      if (server.database.connection === true) mainWindow.webContents.send('messageFromMain', {channel: 'server-update', server});
+      if (server.database.connection === true) mainWindow.webContents.send('server-update', server);
     } else {
       // Database connection (Check connection persistence)
       let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
       if (isDatabaseStillConnected.result === false) {
         if (server.database.connection !== isDatabaseStillConnected.result) {
           server.database.connection = false;
-          mainWindow.webContents.send('messageFromMain', {channel: 'server-update', server});
+          mainWindow.webContents.send('server-update', server);
         }
       }
     }
@@ -184,20 +184,11 @@ function connectionChecker() {
   }, 15*1000);
 }
 
-
-
-async function saveClientsFile(data) {
-  const filePath = path.join(__dirname, 'configs', 'clients.json');
-  await fs.promises.writeFile(filePath, JSON.stringify(data));
-  console.log("File [clients.json] saved.");
-  return true;
-}
-
-
-// Socket listeners
+/***** Socket Listeners *****/
 io.on('connection', (socket) => {
   console.log('Connected socket.id:', socket.id);
 
+  // Get disconnected client & update client status
   socket.on("disconnect", (reason) => {
     console.log("Disconnect socket.id:", socket.id);
     let clientIndex = server.clients.findIndex((onlineClient) => onlineClient.socketId === socket.id);
@@ -211,7 +202,7 @@ io.on('connection', (socket) => {
     }
   });
 
-
+  // Get connected client's credentials
   socket.on("greeting", (client) => {
     console.log("Connected client: ", client);
     // Add socketId
@@ -244,7 +235,7 @@ io.on('connection', (socket) => {
     }
   });
 
-
+  // Get client's database connection status
   socket.on('update-client', (data) => {
     console.log('update-client', data);
     let client = getClientByMachineId(data.machineId);
@@ -254,40 +245,13 @@ io.on('connection', (socket) => {
     }
   });
 
-
-
-  // socket.on('compare-databases', async (data) => {
-  //   console.log("compare-databases:", data);
-  //   // Check for server database connection
-  //   if (!server.database.connection) {
-  //     // Server is not connected to a database
-  //     // FIXME: Add error message here
-  //     return false;
-  //   }
-  //   // Get client
-  //   let client = getClientByMachineId(data.serverData.machineId);
-  //   // Organise client information
-  //   let selectedDatabase = client.binding.database;
-  //   let machineId = client.machineId;
-  //   // Get server database details
-  //   let serverDatabase = await getDatabaseDetails(selectedDatabase);
-  //   // Set received client database details
-  //   let clientDatabase = data.clientDatabase;
-  //   // Send data back to renderer
-  //   // mainWindow.webContents.send('messageFromMain', {channel: 'check-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: machineId}});
-  // });
-
-
-
+  // Get client's database table CREATE command
   socket.on('show-create-table', async (data) => {
     mainWindow.webContents.send('show-create-table', {showCreate: data.showCreate});
   });
 
-
-
-
+  // Get client's database max ids
   socket.on('max-id', async (client) => {
-
     for (const tbl of client.binding.tables) {
       let maxId = await sqlQuery(`SELECT MAX(\`${tbl.column}\`) AS maxId FROM \`${client.binding.database}\`.\`${tbl.table}\`;`);
       if (maxId.result) {
@@ -313,11 +277,8 @@ io.on('connection', (socket) => {
     console.log("isThereAnyError:", isThereAnyError);
   });
 
-
-
+  // Transfer data
   socket.on('transfer-data', async (client) => {
-
-    // HAHAHAHAHAHAHAHAHAHAH
     for (let tbl of client.binding.insert) {
 
       if (tbl.result) {
@@ -351,103 +312,20 @@ io.on('connection', (socket) => {
 
     client.binding.insert = {};
 
-
     // let maxId = await sqlQuery(``);
-    mainWindow.webContents.send('messageFromMain', {channel: 'transfer-data', client: client});
+    mainWindow.webContents.send('transfer-data', client);
   });
 
-
-
 });
 
 
 
-// IPC listeners
-ipcMain.on('messageToMain', async (event, data) => {
-  console.log(data);
-  switch (data.channel) {
-
-    case 'max-id':
-    let client = getClientByMachineId(data.machineId);
-    if (client !== false) {
-      io.to(client.socketId).emit('max-id', client);
-    } else {
-      console.log("max-id: Client not found.");
-    }
-    break;
-    default:
-    console.log(`This channel [${data.channel}] is not exist!`);
-  }
-});
-
-
-
-ipcMain.on('show-create-table', async (event, data) => {
-  console.log("show-create-table:", data);
+/***** IPC Listeners *****/
+ipcMain.handle('get-client', async (event, data) => {
+  console.log("get-client:", data);
   let client = getClientByMachineId(data.machineId);
-  if (client === false) return {error: true, message: 'Client not found!'};
-  io.to(client.socketId).emit('show-create-table', data);
+  return client;
 });
-
-
-
-ipcMain.handle('save-binding-details', async (event, data) => {
-  console.log("save-binding-details:", data);
-  // Error
-  let client = getClientByMachineId(data.machineId);
-  if (client === false) return {error: true, message: 'Client not found!'};
-  // Success
-  client.binding = data.binding;
-  saveClientsFile(server.clients);
-  return {error: false, message: `Client binded to server '${data.binding.database}' database`};
-});
-
-
-
-
-function getClientByMachineId(machineId) {
-  let clientIndex = server.clients.findIndex((client) => client.machineId === machineId);
-  if (clientIndex === -1) {
-    return false;
-  } else {
-    return server.clients[clientIndex];
-  }
-}
-
-
-async function getDatabaseDetails(selectedDatabase) {
-  // Warning: forEach doesn't strictly follow async/await rules.
-  // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
-
-  // Create database array
-  let db = [];
-  // Get database tables
-  let showTables = await sqlQuery(`SHOW TABLES FROM ${selectedDatabase};`);
-  // Merge table names with fields
-  for (const table of showTables.response) {
-    let tableName = Object.values(table)[0];
-    let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${selectedDatabase};`);
-    let tableObj = {table: tableName, fields: showFields.response};
-    db.push(tableObj);
-  }
-  return db;
-}
-
-
-ipcMain.handle('delete-client', async (event, data) => {
-  console.log("delete-client:", data);
-
-  let clientIndex = server.clients.findIndex((client) => client.machineId === data.machineId);
-  if (clientIndex === -1) {
-    return {error: true, message: 'Client not found!'};
-  } else {
-    server.clients.splice(clientIndex, 1);
-    saveClientsFile(server.clients);
-    return {error: false, message: 'Client deleted'};
-  }
-
-});
-
 
 ipcMain.handle('change-name', async (event, data) => {
   console.log("change-name:", data);
@@ -457,14 +335,6 @@ ipcMain.handle('change-name', async (event, data) => {
   saveClientsFile(server.clients);
   return {error: false, message: 'Name changed'};
 });
-
-
-ipcMain.handle('get-client', async (event, data) => {
-  console.log("get-client:", data);
-  let client = getClientByMachineId(data.machineId);
-  return client;
-});
-
 
 ipcMain.handle('refresh-databases', async (event, data) => {
   // Check server database connection
@@ -485,8 +355,6 @@ ipcMain.handle('refresh-databases', async (event, data) => {
   return {databases: databases, error: false};
 });
 
-
-
 ipcMain.on('compare-databases', async (event, data) => {
   console.log('compare-databases:', data);
   // Get client
@@ -499,9 +367,75 @@ ipcMain.on('compare-databases', async (event, data) => {
   io.to(client.socketId).timeout(10000).emit('compare-databases', false, async (err, response) => {
     let clientDatabase = response.length > 0 ? response[0] : [];
     let serverDatabase = await getDatabaseDetails(data.selectedDatabase);
-    // let databases = {serverDatabase: serverDatabase, clientDatabase: clientDatabase};
-    // mainWindow.webContents.send('messageFromMain', {channel: 'compare-databases', databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase, machineId: data.machineId}});
-
     mainWindow.webContents.send('compare-databases', {machineId: client.machineId, databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase}});
   });
 });
+
+ipcMain.handle('save-binding-details', async (event, data) => {
+  console.log("save-binding-details:", data);
+  // Error
+  let client = getClientByMachineId(data.machineId);
+  if (client === false) return {error: true, message: 'Client not found!'};
+  // Success
+  client.binding = data.binding;
+  saveClientsFile(server.clients);
+  return {error: false, message: `Client binded to server '${data.binding.database}' database`};
+});
+
+ipcMain.on('show-create-table', async (event, data) => {
+  console.log("show-create-table:", data);
+  let client = getClientByMachineId(data.machineId);
+  if (client === false) return {error: true, message: 'Client not found!'};
+  io.to(client.socketId).emit('show-create-table', data);
+});
+
+ipcMain.on('max-id', async (event, data) => {
+  console.log("max-id:", data);
+  let client = getClientByMachineId(data.machineId);
+  if (client === false) return {error: true, message: 'Client not found!'};
+  io.to(client.socketId).emit('max-id', client);
+});
+
+ipcMain.handle('delete-client', async (event, data) => {
+  console.log("delete-client:", data);
+  let clientIndex = server.clients.findIndex((client) => client.machineId === data.machineId);
+  if (clientIndex === -1) {
+    return {error: true, message: 'Client not found!'};
+  } else {
+    server.clients.splice(clientIndex, 1);
+    saveClientsFile(server.clients);
+    return {error: false, message: 'Client deleted'};
+  }
+});
+
+
+/***** Functions *****/
+// Find and return client object, return false if not found
+function getClientByMachineId(machineId) {
+  let clientIndex = server.clients.findIndex((client) => client.machineId === machineId);
+  if (clientIndex === -1) {
+    return false;
+  } else {
+    return server.clients[clientIndex];
+  }
+}
+
+// Create collection of database table fields (including keys, types, defaults, nulls, extras)
+async function getDatabaseDetails(selectedDatabase) {
+  // Warning: forEach doesn't strictly follow async/await rules.
+  // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
+
+  // Create database array
+  let db = [];
+  // Get database tables
+  let showTables = await sqlQuery(`SHOW TABLES FROM ${selectedDatabase};`);
+
+  // Merge table names with fields
+  for (const table of showTables.response) {
+    let tableName = Object.values(table)[0];
+    let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${selectedDatabase};`);
+    let tableObj = {table: tableName, fields: showFields.response};
+    db.push(tableObj);
+  }
+  return db;
+}
