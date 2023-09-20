@@ -121,7 +121,7 @@
               <div class="buttons control">
                 <button id="modal-refresh-button" class="button is-small is-primary">Refresh</button>
                 <button id="modal-check-button" class="button is-small is-warning">Check</button>
-                <button id="modal-bind-button" class="button is-small is-link">Bind</button>
+                <button id="modal-bind-button" class="button is-small is-link" disabled>Bind</button>
               </div>
             </div>
           </div>
@@ -138,17 +138,17 @@
                 <table id="modal-tables" class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth">
                   <thead>
                     <tr>
-                      <th colspan="2" class="has-background-success-light has-text-success">Client Setup</th>
-                      <th colspan="2" class="has-background-link-light has-text-link">Server Match</th>
-                      <th colspan="2" class="has-background-danger-light has-text-danger">Sync</th>
+                      <th class="has-background-success-light has-text-success">Client Setup</th>
+                      <th colspan="2" class="has-background-link-light has-text-link">Server Setup</th>
+                      <th colspan="3" class="has-background-danger-light has-text-danger">Sync</th>
                     </tr>
                     <tr>
                       <th>Table</th>
-                      <th>Column</th>
                       <th>Table</th>
-                      <th>Column</th>
+                      <th>Columns</th>
                       <th>Client</th>
                       <th>Server</th>
+                      <th>Counter</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -7,26 +7,26 @@ const ipc = {
   // From render to main
   'render': {
     'send': [
-      'compare-databases',
+      'check-databases',
       'show-create-table',
-      'max-id'
+      'synchronizer'
     ],
     // From main to render
     'receive': [
+      'log',
       'start',
       'server-update',
       'new-client',
       'registered-client',
       'update-client',
-      'compare-databases',
+      'check-databases',
       'show-create-table',
-      'transfer-data'
+      'synchronizer'
     ],
     // From render to main and back again
     'sendReceive': [
       'get-client',
       'refresh-databases',
-      'compare-databases',
       'change-name',
       'delete-client',
       'save-binding-details'

@@ -20,7 +20,7 @@ function createWindow () {
   mainWindow.loadFile('index.html')
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 }
 
 app.whenReady().then(() => {
@@ -179,26 +179,11 @@ async function connectToServer() {
     });
 
 
-    // socket.on("compare-databases", async (data) => {
-    //   console.log("Socket called: compare-databases");
-    //   let db = await getDatabaseDetails(client.configs.mysqlDatabase);
-    //   socket.emit('compare-databases', {clientDatabase: db, serverData: data});
-    // });
-
-
-    socket.on("compare-databases", async (data, callback) => {
+    socket.on("check-databases", async (data, callback) => {
       let db = await getDatabaseDetails(client.configs.mysqlDatabase);
       callback(db);
     });
 
-
-    // Not necessary any more
-    // socket.on("check-databases", async (data) => {
-    //   console.log("Socket called: check-databases");
-    //   let db = await getDatabaseDetails(client.configs.mysqlDatabase);
-    //   socket.emit('check-databases', {clientDatabase: db, serverData: data});
-    // });
-    // Not necessary any more
 
 
     socket.on("show-create-table", async (data) => {
@@ -208,42 +193,14 @@ async function connectToServer() {
     });
 
 
-    socket.on("max-id", async (client) => {
-      console.log("Socket called: max-id");
-      for (const tbl of client.binding.tables) {
-        let maxId = await sqlQuery(`SELECT MAX(\`${tbl.column}\`) AS maxId FROM \`${tbl.table}\`;`);
-        if (maxId.result) {
-          tbl.clientMaxId = maxId.response[0].maxId === null ? 0 : maxId.response[0].maxId;
-          tbl.clientError = false;
-        } else {
-          tbl.clientMaxId = 0;
-          tbl.clientError = true;
-        }
+    socket.on("synchronizer", async (client) => {
+      for (let table of client.binding.preserve.collection) {
+        let insertData = await sqlQuery(`SELECT * FROM \`${client.configs.mysqlDatabase}\`.\`${table.table}\` LIMIT 100 OFFSET ${table.serverRowCounter};`);
+        if (insertData.result) table.insertData = insertData.response;
+        console.log(insertData);
       }
-      console.log(client);
-      socket.emit('max-id', client);
+      socket.emit('synchronizer', client);
     });
-
-
-
-
-    socket.on("transfer-data", async (client) => {
-      console.log("Socket called: transfer-data");
-
-      client.binding.insert = [];
-
-      for (const tbl of client.binding.tables) {
-        let chunk = await sqlQuery(`SELECT * FROM \`${tbl.table}\` WHERE \`${tbl.column}\` > ${tbl.serverMaxId} LIMIT 5;`);
-        chunk.table = tbl.table;
-        console.log(chunk);
-        client.binding.insert.push(chunk);
-      }
-
-      socket.emit('transfer-data', client);
-    });
-
-
-
 
 
   });
@@ -289,27 +246,7 @@ function connectionChecker() {
 }
 
 
-async function getDatabaseDetails(selectedDatabase) {
-  // Warning: forEach doesn't strictly follow async/await rules.
-  // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
 
-  // Catch errors
-  if (client.database.connection !== true) return {error: 'No database connection!'};
-
-  // Create database array
-  let db = [];
-  // Get database tables
-  let showTables = await sqlQuery(`SHOW TABLES FROM ${selectedDatabase};`);
-  // Merge table names with fields
-  for (const table of showTables.response) {
-    let tableName = Object.values(table)[0];
-    let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${selectedDatabase};`);
-    let tableObj = {table: tableName, fields: showFields.response};
-    db.push(tableObj);
-  }
-
-  return db;
-}
 
 
 async function showCreateTable(tableName) {
@@ -320,4 +257,26 @@ async function showCreateTable(tableName) {
   let showCreate = await sqlQuery(`SHOW CREATE TABLE ${tableName};`);
 
   return showCreate;
+}
+
+
+
+// Create collection of database table fields (including keys, types, defaults, nulls, extras)
+async function getDatabaseDetails(selectedDatabase) {
+  // Warning: forEach doesn't strictly follow async/await rules.
+  // https://stackoverflow.com/questions/37576685/using-async-await-with-a-foreach-loop?rq=1
+
+  // Create database array
+  let db = [];
+  // Get database tables
+  let showTables = await sqlQuery(`SHOW TABLES FROM ${selectedDatabase};`);
+  // Merge table names with fields
+  for (const table of showTables.response) {
+    let tableName = Object.values(table)[0];
+    let showFields = await sqlQuery(`SHOW FIELDS FROM \`${selectedDatabase}\`.\`${tableName}\`;`);
+    let countRows = await sqlQuery(`SELECT COUNT(*) AS counter FROM \`${selectedDatabase}\`.\`${tableName}\`;`);
+    // Add results to array
+    db.push({table: tableName, fields: showFields.response, count: countRows.response[0].counter});
+  }
+  return db;
 }

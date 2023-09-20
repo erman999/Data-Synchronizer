@@ -23,7 +23,7 @@ function createWindow () {
   // Load main HTML file
   mainWindow.loadFile('index.html');
   // Open the DevTools (optional)
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 }
 
 // Start app
@@ -250,70 +250,26 @@ io.on('connection', (socket) => {
     mainWindow.webContents.send('show-create-table', {showCreate: data.showCreate});
   });
 
-  // Get client's database max ids
-  socket.on('max-id', async (client) => {
-    for (const tbl of client.binding.tables) {
-      let maxId = await sqlQuery(`SELECT MAX(\`${tbl.column}\`) AS maxId FROM \`${client.binding.database}\`.\`${tbl.table}\`;`);
-      if (maxId.result) {
-        tbl.serverMaxId = maxId.response[0].maxId === null ? 0 : maxId.response[0].maxId;
-        tbl.serverError = false;
-      } else {
-        tbl.serverMaxId = 0;
-        tbl.serverError = true;
-      }
-    }
 
-    // Check is there any error. If so, returns 'true' else 'false'
-    let isThereAnyError = client.binding.tables.every(item => item.clientError === true || item.serverError === true);
-    if (isThereAnyError) {
-      // Display some error message on the screen
-      console.log("Some errors found!");
-      return false;
-    } else {
-      io.to(client.socketId).emit('transfer-data', client);
-    }
 
-    console.log(client.binding);
-    console.log("isThereAnyError:", isThereAnyError);
-  });
 
-  // Transfer data
-  socket.on('transfer-data', async (client) => {
-    for (let tbl of client.binding.insert) {
+  socket.on('synchronizer', async (client) => {
 
-      if (tbl.result) {
-        for (let row of tbl.response) {
+    for (let table of client.binding.preserve.collection) {
+      let statement = prepareQueryStatements(client.binding.database, table.table, table.insertData);
 
-          let keys = '';
-          let values = '';
-
-          for (const [key, value] of Object.entries(row)) {
-            keys += `\`${key}\`, `;
-            values += `${typeof row[key] === 'string' ? "'"+value+"'" : value}, `;
-          }
-
-          keys = keys.slice(0, -2);
-          values = values.slice(0, -2);
-
-          // console.log(keys);
-          // console.log(values);
-
-          let query = `INSERT INTO \`${client.binding.database}\`.\`${tbl.table}\` (${keys}) VALUES (${values});`;
-
-          console.log("------------");
-          console.log(query);
-          let insert = await sqlQuery(query);
-          console.log(insert);
-          console.log("------------");
-        }
+      for (let query of statement) {
+        let insert = await sqlQuery(query);
+        // console.log(insert);
       }
 
+      delete table.insertData
     }
 
-    client.binding.insert = {};
+    client.running = false;
 
-    // let maxId = await sqlQuery(``);
-    mainWindow.webContents.send('transfer-data', client);
+    mainWindow.webContents.send('synchronizer', { error: false, client: client });
+
   });
 
 });
@@ -355,8 +311,8 @@ ipcMain.handle('refresh-databases', async (event, data) => {
   return {databases: databases, error: false};
 });
 
-ipcMain.on('compare-databases', async (event, data) => {
-  console.log('compare-databases:', data);
+ipcMain.on('check-databases', async (event, data) => {
+  console.log('check-databases:', data);
   // Get client
   let client = getClientByMachineId(data.machineId);
   // If client not found return error
@@ -364,10 +320,10 @@ ipcMain.on('compare-databases', async (event, data) => {
   // If client is not connected to database return error
   if (!client.socket.connection) return {error: true, message: 'Client offline!'};
   // Request client database details
-  io.to(client.socketId).timeout(10000).emit('compare-databases', false, async (err, response) => {
+  io.to(client.socketId).timeout(10000).emit('check-databases', false, async (err, response) => {
     let clientDatabase = response.length > 0 ? response[0] : [];
     let serverDatabase = await getDatabaseDetails(data.selectedDatabase);
-    mainWindow.webContents.send('compare-databases', {machineId: client.machineId, databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase}});
+    mainWindow.webContents.send('check-databases', {machineId: client.machineId, selectedDatabase: data.selectedDatabase, binding: client.binding, databases: {serverDatabase: serverDatabase, clientDatabase: clientDatabase}});
   });
 });
 
@@ -379,7 +335,7 @@ ipcMain.handle('save-binding-details', async (event, data) => {
   // Success
   client.binding = data.binding;
   saveClientsFile(server.clients);
-  return {error: false, message: `Client binded to server '${data.binding.database}' database`};
+  return {error: false, message: `Client binded to database ${data.binding.database}`};
 });
 
 ipcMain.on('show-create-table', async (event, data) => {
@@ -389,12 +345,6 @@ ipcMain.on('show-create-table', async (event, data) => {
   io.to(client.socketId).emit('show-create-table', data);
 });
 
-ipcMain.on('max-id', async (event, data) => {
-  console.log("max-id:", data);
-  let client = getClientByMachineId(data.machineId);
-  if (client === false) return {error: true, message: 'Client not found!'};
-  io.to(client.socketId).emit('max-id', client);
-});
 
 ipcMain.handle('delete-client', async (event, data) => {
   console.log("delete-client:", data);
@@ -409,7 +359,96 @@ ipcMain.handle('delete-client', async (event, data) => {
 });
 
 
+ipcMain.on('synchronizer', async (event, machineId) => {
+  console.log("synchronizer", machineId);
+  let client = getClientByMachineId(machineId);
+
+  if (client === false) return mainWindow.webContents.send('synchronizer', {error: true, machineId: machineId, message: 'Synchronizer: Client not found!'});
+  if (client.socket.connection === false) return mainWindow.webContents.send('synchronizer', {error: true, machineId: machineId, message: 'Synchronizer: Client is not connected to server!'});
+  if (client.database.connection === false) return mainWindow.webContents.send('synchronizer', {error: true, machineId: machineId, message: 'Synchronizer: Client is not connected to database!'});
+  if (client.binding.binded === false) return mainWindow.webContents.send('synchronizer', {error: true, machineId: machineId, message: 'Synchronizer: Client database binding is invalid!'});
+  if (!client.binding.hasOwnProperty('running')) client.running = false;
+  if (client.running === true) return mainWindow.webContents.send('synchronizer', {error: true, machineId: machineId, message: 'Synchronizer is running.'});
+
+  io.to(client.socketId).timeout(10000).emit('check-databases', false, async (err, response) => {
+    let clientDatabase = response.length > 0 ? response[0] : [];
+    let serverDatabase = await getDatabaseDetails(client.binding.database);
+    let databases = {clientDatabase: clientDatabase, serverDatabase: serverDatabase};
+    let checkResult = databaseChecker(databases);
+    let preserve = {collection: checkResult.collection, totalCheckResult: checkResult.totalCheckResult, totalClientRowCounter: checkResult.totalClientRowCounter, totalServerRowCounter: checkResult.totalServerRowCounter};
+    client.binding.preserve = preserve;
+    saveClientsFile(server.clients);
+    // mainWindow.webContents.send('synchronizer', { error: false, client: client });
+    io.to(client.socketId).emit('synchronizer', client);
+    client.running = true;
+  });
+
+});
+
+
 /***** Functions *****/
+// Check client and server database tables, table fields, column types and keys
+function databaseChecker(data) {
+  // Create shorthand variables
+  let clientDatabase = data.clientDatabase;
+  let serverDatabase = data.serverDatabase;
+  let collection = [];
+  let totalClientRowCounter = 0;
+  let totalServerRowCounter = 0;
+
+  // Watch results
+  let totalCheckResult = true;
+
+  // Loop through all tables
+  clientDatabase.forEach((table, i) => {
+    // Match info variables
+    let tableMatch = true;
+    let columnMatch = true;
+    let counterMatch = true;
+    let clientRowCounter = 0;
+    let serverRowCounter = 0;
+    // Check server table existance on target database
+    let tableMatchIndex = serverDatabase.findIndex(item => item.table === table.table);
+    // Update table match info
+    if (tableMatchIndex === -1) {
+      // Update match info
+      tableMatch = false;
+      columnMatch = false;
+    } else {
+      // Duplicate counters
+      clientRowCounter = table.count;
+      serverRowCounter = serverDatabase[tableMatchIndex].count;
+      // Update counters
+      totalClientRowCounter += table.count;
+      totalServerRowCounter += serverDatabase[tableMatchIndex].count;
+    }
+    // Loop through each table columns for client
+    table.fields.forEach((col, i) => {
+      // If table exists do a column check
+      if (tableMatch) {
+        // Check if server table matches with client's table columns
+        let columnCheck = serverDatabase[tableMatchIndex].fields.some(item => item.Field === col.Field && item.Type === col.Type && item.Key === col.Key);
+        // Update column match info
+        if (!columnCheck) columnMatch = false;
+      }
+    });
+    // Update total check result (counterMatch is a warning not an error totalCheckResult so it does not affect the result)
+    if (!tableMatch || !columnMatch) totalCheckResult = false;
+    // Update counter check result
+    if (!tableMatch || (serverDatabase[tableMatchIndex].count > table.count)) counterMatch = false;
+    // Add results to collection array
+    collection.push({table: table.table, tableMatch: tableMatch, columnMatch: columnMatch, counterMatch: counterMatch, clientRowCounter: clientRowCounter, serverRowCounter: serverRowCounter});
+  });
+
+  // Put everything together
+  data.collection = collection;
+  data.totalCheckResult = totalCheckResult;
+  data.totalClientRowCounter = totalClientRowCounter;
+  data.totalServerRowCounter = totalServerRowCounter;
+
+  return data;
+}
+
 // Find and return client object, return false if not found
 function getClientByMachineId(machineId) {
   let clientIndex = server.clients.findIndex((client) => client.machineId === machineId);
@@ -418,6 +457,32 @@ function getClientByMachineId(machineId) {
   } else {
     return server.clients[clientIndex];
   }
+}
+
+// Prepare MySQL/MariaDB query statements
+function prepareQueryStatements(databaseName, tableName, rowsArray) {
+  // Store queries in this array
+  let queries = [];
+  // Loop through rows
+  for (let row of rowsArray) {
+    // Store keys and values
+    let keys = '';
+    let values = '';
+    // Extract object entries & detect data type
+    for (const [key, value] of Object.entries(row)) {
+      keys += `\`${key}\`, `;
+      values += `${typeof row[key] === 'string' ? "'"+value+"'" : value}, `;
+    }
+    // Remove trailing characters
+    keys = keys.slice(0, -2);
+    values = values.slice(0, -2);
+    // Prepare INSERT statement
+    let query = `INSERT INTO \`${databaseName}\`.\`${tableName}\` (${keys}) VALUES (${values});`;
+    // Add query to queries array
+    queries.push(query);
+  }
+  // Return all queries
+  return queries;
 }
 
 // Create collection of database table fields (including keys, types, defaults, nulls, extras)
@@ -433,9 +498,18 @@ async function getDatabaseDetails(selectedDatabase) {
   // Merge table names with fields
   for (const table of showTables.response) {
     let tableName = Object.values(table)[0];
-    let showFields = await sqlQuery(`SHOW FIELDS FROM ${tableName} FROM ${selectedDatabase};`);
-    let tableObj = {table: tableName, fields: showFields.response};
-    db.push(tableObj);
+    let showFields = await sqlQuery(`SHOW FIELDS FROM \`${selectedDatabase}\`.\`${tableName}\`;`);
+    let countRows = await sqlQuery(`SELECT COUNT(*) AS counter FROM \`${selectedDatabase}\`.\`${tableName}\`;`);
+    // let sample = await sqlQuery(`SELECT * FROM \`${selectedDatabase}\`.\`${tableName}\` LIMIT 10;`);
+    // let queries = prepareQueryStatements(selectedDatabase, tableName, sample.response);
+
+    db.push({table: tableName, fields: showFields.response, count: countRows.response[0].counter});
+
   }
   return db;
 }
+
+
+
+
+// mainWindow.webContents.send('log', data);

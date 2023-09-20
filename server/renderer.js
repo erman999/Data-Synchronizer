@@ -62,8 +62,13 @@ modalCheckBtn.addEventListener('click', function() {
   // Get selected database & prepare data
   let data = {selectedDatabase: modalServerDatabases.value, machineId: modalMachineId.value.trim()};
   // Send to main
-  window.ipcRender.send('compare-databases', data);
+  window.ipcRender.send('check-databases', data);
 });
+
+// Disable Bind button on database selection change
+modalServerDatabases.addEventListener('change', function() {
+  modalBindBtn.disabled = true;
+})
 
 // Bind client database to a server database
 modalBindBtn.addEventListener('click', function() {
@@ -71,36 +76,26 @@ modalBindBtn.addEventListener('click', function() {
   let machineId = modalMachineId.value.trim();
   // Get user database selection
   let selectedDatabase = modalServerDatabases.options[modalServerDatabases.selectedIndex].value;
-  // Collect user selections in an array
-  let userSelection = [];
-  // Get table selections
-  let selects = modalTables.querySelectorAll('tbody select');
-  // Find selections and store in created container
-  selects.forEach((select, i) => {
-    let selTable = select.dataset.table;
-    let selColumn = select.options[select.selectedIndex].value;
-    userSelection.push({table: selTable, column: selColumn});
-  });
   // Construct data pattern
   let bindingData = {
     machineId: machineId,
     binding: {
       binded: true,
       database: selectedDatabase,
-      tables: userSelection
     }
   };
   // Send data to main
   window.ipcRender.invoke('save-binding-details', bindingData).then((result) => {
     // Show error
     if (result.error) return toast('danger', result.message);
-    // Find that row
-    // let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
     // Show notification
     toast('success', result.message);
-
-    // FIXME: Looperın başlatılması gerek
-    // loopChecker(data.client);
+    // Disable Bind button after binded complete
+    modalBindBtn.disabled = true;
+    // Update synchronization status
+    percentStyler('is-warning', machineId, '---');
+    // Start synchronizer
+    window.ipcRender.send('synchronizer', machineId);
   });
 });
 
@@ -134,6 +129,11 @@ modalConfirmBtn.addEventListener('click', function() {
 
 
 /***** IPC Listeners *****/
+// Show logs
+window.ipcRender.receive('log', (data) => {
+  console.log({channel: 'log', data: data});
+});
+
 // Receive server info and display on main screen
 window.ipcRender.receive('start', (data) => {
   console.log({channel: 'start', data: data});
@@ -181,17 +181,19 @@ window.ipcRender.receive('new-client', (client) => {
 window.ipcRender.receive('registered-client', (client) => {
   console.log({channel: 'registered-client', client: client});
   updateClient(client);
+  window.ipcRender.send('synchronizer', client.machineId);
 });
 
 // Client status update
 window.ipcRender.receive('update-client', (client) => {
   console.log({channel: 'update-client', client: client});
   updateClient(client);
+  window.ipcRender.send('synchronizer', client.machineId);
 });
 
 // Compare client database with server target database
-window.ipcRender.receive('compare-databases', (data) => {
-  console.log({channel: 'compare-databases', data: data});
+window.ipcRender.receive('check-databases', (data) => {
+  console.log({channel: 'check-databases', data: data});
   // Define shorthand variables
   let clientDatabase = data.databases.clientDatabase;
   let serverDatabase = data.databases.serverDatabase;
@@ -208,6 +210,7 @@ window.ipcRender.receive('compare-databases', (data) => {
     // Match info variables
     let tableMatch = true;
     let columnMatch = true;
+    let counterMatch = true;
     // Check server table existance on target database
     let tableMatchIndex = serverDatabase.findIndex(item => item.table === table.table);
     // Update table match info
@@ -215,14 +218,8 @@ window.ipcRender.receive('compare-databases', (data) => {
       tableMatch = false;
       columnMatch = false;
     }
-    // HTML collector for option elements
-    let options = '';
     // Loop through each table columns for client
     table.fields.forEach((col, i) => {
-      // Create options
-      let option = `<option value="${col.Field}" ${col.Key === 'PRI' ? 'selected' : 'disabled'}>${col.Field}</option>`;
-      // Append in options
-      options += option;
       // If table exists do a column check
       if (tableMatch) {
         // Check if server table matches with client's table columns
@@ -233,20 +230,16 @@ window.ipcRender.receive('compare-databases', (data) => {
     });
     // Update total check result
     if (!tableMatch || !columnMatch) totalCheckResult = false;
+    // Update counter check result
+    if (!tableMatch || (serverDatabase[tableMatchIndex].count > table.count)) counterMatch = false;
     // Create table row
     let row = `<tr>
     <td><a href="#" class="show-create-table">${table.table}</a></td>
-    <td>
-    <div class="select is-small is-fullwidth">
-    <select data-table="${table.table}">
-    ${options}
-    </select>
-    </div>
-    </td>
     <td><span class="tag ${tableMatch ? 'is-success' : 'is-danger'}">${tableMatch ? 'OK' : 'NOK'}</span></td>
     <td><span class="tag ${columnMatch ? 'is-success' : 'is-danger'}">${columnMatch ? 'OK' : 'NOK'}</span></td>
-    <td>700000</td>
-    <td>700000</td>
+    <td>${table.count}</td>
+    <td>${tableMatch ? serverDatabase[tableMatchIndex].count : 0}</td>
+    <td>${!counterMatch ? '<span class="tag is-danger">Error</span>' : '<span class="tag is-success">OK</span>' }</td>
     </tr>`;
     // Insert elements
     checkTable.insertAdjacentHTML('beforeend', row);
@@ -255,6 +248,12 @@ window.ipcRender.receive('compare-databases', (data) => {
       window.ipcRender.send('show-create-table', {machineId: data.machineId, tableName: table.table});
     });
   });
+  // Enable 'Bind' button
+  if (data.binding.binded && data.selectedDatabase === data.binding.database) {
+    modalBindBtn.disabled = true;
+  } else if (totalCheckResult) {
+    modalBindBtn.disabled = false;
+  }
 });
 
 // Show client database table CREATE command
@@ -262,13 +261,33 @@ window.ipcRender.receive('show-create-table', (data) => {
   modalShowCreate.value = data.showCreate.response[0]['Create Table'];
 });
 
-// Data transfer loop
-window.ipcRender.receive('transfer-data', (data) => {
-  console.log({channel: 'transfer-data', data: data});
+
+
+
+// Synchronizer received data
+window.ipcRender.receive('synchronizer', (data) => {
+  console.log(data);
+
+  // Display error message
+  if (data.error) {
+    toast('danger', data.message);
+    percentStyler('is-danger', data.machineId, false);
+    return;
+  }
+
+  // Show progress
+  if (data.client.binding.hasOwnProperty('preserve')) {
+    let clientCounter = data.client.binding.preserve.totalClientRowCounter;
+    let serverCounter = data.client.binding.preserve.totalServerRowCounter;
+    let percent = Math.floor(serverCounter / clientCounter * 100);
+    percentStyler('is-success', data.client.machineId, percent + '%');
+  }
+
+  // Run again after a time interval
   setTimeout(function() {
-    console.log("Time is out...");
-    // loopChecker(data);
+    window.ipcRender.send('synchronizer', data.client.machineId);
   }, 3000);
+
 });
 
 
@@ -281,13 +300,7 @@ function appendClient(client) {
   <td><span class="clientIp tag is-black">${client.clientIp}</span></td>
   <td><span class="server-connection tag ${client.socket.connection ? 'is-success' : 'is-danger'}">${client.socket.connection ? 'Connected': 'Disconnected'}</span></td>
   <td><span class="database-connection tag ${client.database.connection ? 'is-success' : 'is-danger'}">${client.database.connection ? 'Connected': 'Disconnected'}</span></td>
-  <td>
-  <button class="sync button is-small ${client.binding.binded ? 'is-success' : 'is-danger'}">
-  <span class="icon">
-  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#${client.binding.binded ? 'icon-check' : 'icon-cross'}"></use></svg>
-  </span>
-  </button>
-  </td>
+  <td><span class="percent tag is-warning">---</span></td>
   <td>
   <button class="configs button is-warning is-small">
   <span class="icon">
@@ -300,6 +313,9 @@ function appendClient(client) {
   let table = document.querySelector('.table-clients tbody');
   // Insert prepared HTML
   table.insertAdjacentHTML('beforeend', html);
+  // Update progress
+  let percent = Math.floor(client.binding.preserve.totalServerRowCounter / client.binding.preserve.totalClientRowCounter * 100);
+  percentStyler('is-danger', client.machineId, percent + '%');
   // Get last inserted element
   table.lastChild.querySelector('.configs').addEventListener('click', function(e) {
     // Open modal window
@@ -342,7 +358,7 @@ function appendClient(client) {
           // Prepare data
           let data = {selectedDatabase: thisClient.binding.database, machineId: modalMachineId.value.trim()};
           // Send to main
-          window.ipcRender.send('compare-databases', data);
+          window.ipcRender.send('check-databases', data);
         } else {
           toast('danger', 'This client is not binded to any database!');
         }
@@ -367,8 +383,6 @@ function updateClient(client) {
   databaseConnectionCol.textContent = client.database.connection ? 'Connected': 'Disconnected';
   databaseConnectionCol.classList.add(client.database.connection ? 'is-success' : 'is-danger');
   databaseConnectionCol.classList.remove(client.database.connection ? 'is-danger' : 'is-success');
-  // Start loop checker
-  loopChecker(client);
 }
 
 // Toast notification
@@ -446,7 +460,7 @@ function resetModalWindow() {
   modal.classList.remove('is-active');
   // Enable buttons
   modalServerDatabases.disabled = false;
-  modalBindBtn.disabled = false;
+  modalBindBtn.disabled = true;
   modalCheckBtn.disabled = false;
   modalRefreshBtn.disabled = false;
   // Clear machineId
@@ -463,48 +477,15 @@ function resetModalWindow() {
   }
 }
 
-// Check client's connetions and start data transfer loop
-function loopChecker(client) {
-  return false;
 
-  console.log('loopChecker: ', client.machineId);
-  console.log(client.socket.connection, client.database.connection, client.binding.binded);
-
-  // Check client ready for data transfer loop
-  if (client.socket.connection && client.database.connection && client.binding.binded) {
-    // Start loop
-    console.log("Client loop started.");
-    window.ipcRender.send('max-id', {machineId: client.machineId});
-  } else {
-    // Wait for a while then try again
-    console.log("Client NOT ready for loop.");
-  }
-}
-
-// FIXME: This may no be neccessary
-function syncStyler(machineId, color) {
+// Synchronization percent styler for main screen
+function percentStyler(color, machineId, percent) {
   let colors = ['is-loading', 'is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
-
   let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
-  let btn = document.querySelector('button.sync');
-  let svg = btn.querySelector('svg use');
-  let xlink = svg.getAttribute('xlink:href').split('#');
-
-  btn.classList.remove(...colors);
-
-  switch (color) {
-    case 'is-loading':
-    btn.classList.add('is-loading', 'is-link');
-    break;
-    case 'is-success':
-    btn.classList.add('is-success');
-    svg.setAttribute('xlink:href', xlink[0] + '#icon-check');
-    break;
-    case 'is-danger':
-    btn.classList.add('is-danger');
-    svg.setAttribute('xlink:href', xlink[0] + '#icon-cross');
-    break;
-    default:
-    // Nothing to do here
+  let tag = document.querySelector('.percent');
+  tag.classList.remove(...colors);
+  tag.classList.add(color);
+  if (percent !== false) {
+    tag.textContent = percent;
   }
 }
