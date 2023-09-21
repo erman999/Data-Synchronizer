@@ -1,8 +1,12 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const path = require('path')
+/***** Electron *****/
+// Require electron libraries
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
 
+// Define mainWindow as global variable
 let mainWindow;
 
+// Create main window
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -15,44 +19,46 @@ function createWindow () {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     }
-  })
-
-  mainWindow.loadFile('index.html')
-
+  });
+  // Load main HTML file
+  mainWindow.loadFile('index.html');
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools();
 }
 
+// Start app
 app.whenReady().then(() => {
-  createWindow()
-
+  // Create window
+  createWindow();
+  // (macOS) Emitted when the application is activated
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-
-  // DOMContentLoaded equivalent
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+  // Emitted when the navigation is done. Kind of DOMContentLoaded equivalent
   mainWindow.webContents.once('did-finish-load', async () => {
     startApp();
   });
+});
 
-})
-
+// Emitted when all windows have been closed
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit()
-})
+  if (process.platform !== 'darwin') app.quit();
+});
 
 
-
-/********** Application Specific Codes **********/
+/***** Applicaton *****/
+// Call required libraries
 const fs = require('fs');
 const os = require('os');
 const mysql = require('mysql2');
 const { io } = require("socket.io-client");
 const nodeMachineId = require('node-machine-id');
 
+// Global variables
 let socket = {};
 let promisePool = {};
 
+// Store client variables
 let client = {
   machineId: nodeMachineId.machineIdSync({original: true}),
   clientIp: getIpAdresses().v4,
@@ -62,37 +68,20 @@ let client = {
 };
 
 
+/***** Functions *****/
+// Start application
 async function startApp() {
-
-  // Test amaçlıdır silinecek
-  client.machineId = '0000001-5c1f-466e-9e82-2b8578e26265';
-  // Test amaçlıdır silinecek
-
-
-
   // Read config file
   const configs = await readConfigFile(null, 'configs.json');
   client.configs = configs;
-
   // Try to connect database
   const isDatabaseConnected = await connectToDatabase();
   client.database = isDatabaseConnected;
-
   // Try to connect server
   const isServerConnected = await connectToServer();
-
   // Start database connection checker loop
   connectionChecker();
-
 }
-
-
-
-
-ipcMain.on('messageToMain', (event, message) => {
-  console.log(message);
-});
-
 
 // Get external IP adresses (IPv4 & IPv6)
 function getIpAdresses() {
@@ -141,71 +130,32 @@ async function connectToDatabase() {
   });
 }
 
-// Connect to server
-async function connectToServer() {
-  return new Promise((resolve, reject) => {
+// Check database connection in given time interval
+function connectionChecker() {
+  setInterval(async() => {
 
-    console.log("Trying to connect server...");
-    socket = io('http://' + client.configs.serverIp + ':' + client.configs.port);
-
-
-    socket.on("connect", () => {
-      console.log("Socket [connect] -> socket.connected: ", socket.connected);
-      client.socket.connection = true;
-      client.socket.event = "connect";
-      mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
-      socket.emit("greeting", client);
-      resolve();
-    });
-
-
-    socket.on("disconnect", () => {
-      console.log("Socket [disconnect] -> socket.connected: ", socket.connected);
-      client.socket.connection = false;
-      client.socket.event = "disconnect";
-      mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
-      resolve();
-    });
-
-
-    socket.on("connect_error", () => {
-      console.log("Socket [connect_error] -> socket.connected: ", socket.connected);
-      if (client.socket.connection !== false) {
-        client.socket.connection = false;
-        client.socket.event = "connect_error";
-        mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
+    // Database connection (Check connection on start and connect if not established)
+    if (client.database.connection !== true) {
+      const isDatabaseConnected = await connectToDatabase();
+      client.database = isDatabaseConnected;
+      if (client.database.connection === true) {
+        mainWindow.webContents.send('update', {client: client});
+        socket.emit('update-client', client);
       }
-      resolve();
-    });
-
-
-    socket.on("check-databases", async (data, callback) => {
-      let db = await getDatabaseDetails(client.configs.mysqlDatabase);
-      callback(db);
-    });
-
-
-
-    socket.on("show-create-table", async (data) => {
-      console.log("Socket called: show-create-table");
-      let showCreate = await showCreateTable(data.tableName);
-      socket.emit('show-create-table', {showCreate: showCreate});
-    });
-
-
-    socket.on("synchronizer", async (client) => {
-      for (let table of client.binding.preserve.collection) {
-        let insertData = await sqlQuery(`SELECT * FROM \`${client.configs.mysqlDatabase}\`.\`${table.table}\` LIMIT 100 OFFSET ${table.serverRowCounter};`);
-        if (insertData.result) table.insertData = insertData.response;
-        console.log(insertData);
+    } else {
+      // Database connection (Check connection persistence)
+      let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
+      if (isDatabaseStillConnected.result === false) {
+        if (client.database.connection !== isDatabaseStillConnected.result) {
+          client.database.connection = false;
+          mainWindow.webContents.send('update', {client: client});
+          socket.emit('update-client', client);
+        }
       }
-      socket.emit('synchronizer', client);
-    });
+    }
 
-
-  });
+  }, 15*1000);
 }
-
 
 // Run queries without crash
 async function sqlQuery(query) {
@@ -217,49 +167,12 @@ async function sqlQuery(query) {
   }
 }
 
-
-// Check database connection in given time interval
-function connectionChecker() {
-  setInterval(async() => {
-
-    // Database connection (Check connection on start and connect if not established)
-    if (client.database.connection !== true) {
-      const isDatabaseConnected = await connectToDatabase();
-      client.database = isDatabaseConnected;
-      if (client.database.connection === true) {
-        mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
-        socket.emit('update-client', client);
-      }
-    } else {
-      // Database connection (Check connection persistence)
-      let isDatabaseStillConnected = await sqlQuery('SELECT 1 AS connected;');
-      if (isDatabaseStillConnected.result === false) {
-        if (client.database.connection !== isDatabaseStillConnected.result) {
-          client.database.connection = false;
-          mainWindow.webContents.send('messageFromMain', {channel: 'update', client});
-          socket.emit('update-client', client);
-        }
-      }
-    }
-
-  }, 15*1000);
-}
-
-
-
-
-
+// Run SQL SHOW CREATE TABLE query and return single SQL CREATE statement for the table
 async function showCreateTable(tableName) {
-
-  // Catch errors
   if (client.database.connection !== true) return {error: 'No database connection!'};
-
   let showCreate = await sqlQuery(`SHOW CREATE TABLE ${tableName};`);
-
   return showCreate;
 }
-
-
 
 // Create collection of database table fields (including keys, types, defaults, nulls, extras)
 async function getDatabaseDetails(selectedDatabase) {
@@ -275,8 +188,70 @@ async function getDatabaseDetails(selectedDatabase) {
     let tableName = Object.values(table)[0];
     let showFields = await sqlQuery(`SHOW FIELDS FROM \`${selectedDatabase}\`.\`${tableName}\`;`);
     let countRows = await sqlQuery(`SELECT COUNT(*) AS counter FROM \`${selectedDatabase}\`.\`${tableName}\`;`);
-    // Add results to array
     db.push({table: tableName, fields: showFields.response, count: countRows.response[0].counter});
   }
   return db;
+}
+
+// Connect to server
+async function connectToServer() {
+  return new Promise((resolve, reject) => {
+    console.log("Trying to connect server...");
+
+    // Connect to server
+    socket = io('http://' + client.configs.serverIp + ':' + client.configs.port);
+
+    /***** Socket Listeners *****/
+    // Detect connection, send greeting to server and update status
+    socket.on("connect", () => {
+      console.log("Socket [connect] -> socket.connected: ", socket.connected);
+      client.socket.connection = true;
+      client.socket.event = "connect";
+      mainWindow.webContents.send('update', {client: client});
+      socket.emit("greeting", client);
+      resolve();
+    });
+
+    // Detect disconnection and update status
+    socket.on("disconnect", () => {
+      console.log("Socket [disconnect] -> socket.connected: ", socket.connected);
+      client.socket.connection = false;
+      client.socket.event = "disconnect";
+      mainWindow.webContents.send('update', {client: client});
+      resolve();
+    });
+
+    // Listen connection error (automatically try to connect)
+    socket.on("connect_error", () => {
+      console.log("Socket [connect_error] -> socket.connected: ", socket.connected);
+      if (client.socket.connection !== false) {
+        client.socket.connection = false;
+        client.socket.event = "connect_error";
+        mainWindow.webContents.send('update', {client: client});
+      }
+      resolve();
+    });
+
+    // Get database details and return to server socket
+    socket.on("check-databases", async (data, callback) => {
+      let db = await getDatabaseDetails(client.configs.mysqlDatabase);
+      callback(db);
+    });
+
+    // Get SQL SHOW CREATE statement and emit to server socket
+    socket.on("show-create-table", async (data) => {
+      let showCreate = await showCreateTable(data.tableName);
+      socket.emit('show-create-table', {showCreate: showCreate});
+    });
+
+    // Listen synchronizer, evaluate and find missing data, emit prepared data to server
+    socket.on("synchronizer", async (client) => {
+      for (let table of client.binding.preserve.collection) {
+        let insertData = await sqlQuery(`SELECT * FROM \`${client.configs.mysqlDatabase}\`.\`${table.table}\` LIMIT 100 OFFSET ${table.serverRowCounter};`);
+        if (insertData.result) table.insertData = insertData.response;
+      }
+      socket.emit('synchronizer', client);
+    });
+
+  });
 }

@@ -93,7 +93,7 @@ modalBindBtn.addEventListener('click', function() {
     // Disable Bind button after binded complete
     modalBindBtn.disabled = true;
     // Update synchronization status
-    percentStyler('is-warning', machineId, '---');
+    percentStyler('is-danger', machineId, '---');
     // Start synchronizer
     window.ipcRender.send('synchronizer', machineId);
   });
@@ -261,33 +261,33 @@ window.ipcRender.receive('show-create-table', (data) => {
   modalShowCreate.value = data.showCreate.response[0]['Create Table'];
 });
 
-
-
-
 // Synchronizer received data
 window.ipcRender.receive('synchronizer', (data) => {
-  console.log(data);
-
+  // console.log(data);
   // Display error message
   if (data.error) {
     toast('danger', data.message);
     percentStyler('is-danger', data.machineId, false);
     return;
   }
-
+  // Synchronizer timeout timer
+  let timer = 3000;
   // Show progress
   if (data.client.binding.hasOwnProperty('preserve')) {
+    // Shorthand variables
     let clientCounter = data.client.binding.preserve.totalClientRowCounter;
     let serverCounter = data.client.binding.preserve.totalServerRowCounter;
+    // Calculate percentage
     let percent = Math.floor(serverCounter / clientCounter * 100);
+    // Extend loop timer if synchronization is 100
+    if (parseInt(percent) == 100) timer = 60000;
+    // Update client's sync progress
     percentStyler('is-success', data.client.machineId, percent + '%');
   }
-
-  // Run again after a time interval
+  // Run synchronizer again after a time interval
   setTimeout(function() {
     window.ipcRender.send('synchronizer', data.client.machineId);
-  }, 3000);
-
+  }, timer);
 });
 
 
@@ -314,8 +314,12 @@ function appendClient(client) {
   // Insert prepared HTML
   table.insertAdjacentHTML('beforeend', html);
   // Update progress
-  let percent = Math.floor(client.binding.preserve.totalServerRowCounter / client.binding.preserve.totalClientRowCounter * 100);
-  percentStyler('is-danger', client.machineId, percent + '%');
+  if (client.binding.hasOwnProperty('preserve')) {
+    let percent = Math.floor(client.binding.preserve.totalServerRowCounter / client.binding.preserve.totalClientRowCounter * 100);
+    percentStyler('is-danger', client.machineId, percent + '%');
+  } else {
+    percentStyler('is-danger', client.machineId, '---');
+  }
   // Get last inserted element
   table.lastChild.querySelector('.configs').addEventListener('click', function(e) {
     // Open modal window
@@ -477,12 +481,11 @@ function resetModalWindow() {
   }
 }
 
-
 // Synchronization percent styler for main screen
 function percentStyler(color, machineId, percent) {
   let colors = ['is-loading', 'is-primary', 'is-link', 'is-info', 'is-success', 'is-warning', 'is-danger', 'is-white', 'is-light', 'is-dark', 'is-black'];
   let row = document.querySelector(`tr[data-machineId="${machineId}"]`);
-  let tag = document.querySelector('.percent');
+  let tag = row.querySelector('.percent');
   tag.classList.remove(...colors);
   tag.classList.add(color);
   if (percent !== false) {
