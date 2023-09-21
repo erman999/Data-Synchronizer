@@ -56,6 +56,7 @@ modalSaveBtn.addEventListener('click', function() {
   // Save file
   window.ipcRender.invoke('save-configs', configs).then((result) => {
     console.log('save-configs', result);
+    toast('success', 'Configs successfully saved. Restart application to connect with new configurations.');
   });
 });
 
@@ -82,4 +83,38 @@ window.ipcRender.receive('update', (data) => {
 function resetModalWindow() {
   // Close modal
   modal.classList.remove('is-active');
+}
+
+// Toast notification
+function toast(type, message) {
+  // Get body element
+  let body = document.querySelector('body');
+  // Remove previous messages
+  body.querySelectorAll('.notification').forEach((el, i) => {
+    el.remove();
+  });
+  // Create new notification element
+  let html = `<div class="notification is-${type === 'success' ? 'success' : 'danger'}">
+  <button class="delete"></button>
+  <div class="is-flex is-align-items-center">
+  <span class="icon">
+  <svg class="icon"><use xlink:href="./img/symbol-defs.svg#icon-${type === 'success' ? 'check' : 'cross'}"></use></svg>
+  </span>
+  <span class="ml-2">${message}</span>
+  </div>
+  </div>`;
+  // Append notification element to body
+  body.insertAdjacentHTML('beforeend', html);
+  // Grab last child from body
+  let lastChild = body.lastChild;
+  // Listen close notification activity
+  lastChild.querySelector('.delete').addEventListener('click', function() {
+    lastChild.remove();
+  });
+  // Remove notification after a while
+  setTimeout(function() {
+    lastChild.remove();
+  }, 5000);
+
+  return false;
 }

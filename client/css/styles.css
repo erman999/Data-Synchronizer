@@ -26,3 +26,21 @@ html, body {
   border-bottom: 1px solid lightgrey;
   padding-bottom: 0.3rem;
 }
+
+.notification {
+  display: block;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  max-width: 300px;
+  font-size: 14px;
+  z-index: 9999;
+}
+
+.notification .icon {
+  fill: white !important;
+}
+
+.icon-cog {
+  fill: black;
+}
