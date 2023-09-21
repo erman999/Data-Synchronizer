@@ -12,7 +12,18 @@
 
   <div class="container p-4">
     <div class="content">
-      <h3 class="mt-1 mb-5">Data Synchronizer: Client</h3>
+
+      <div class="is-flex is-justify-content-space-between">
+        <h3 class="mt-1 mb-5">Data Synchronizer: Client</h3>
+        <button id="settings" class="button is-small" type="button">
+          <span class="icon">
+            <svg id="icon-cog" viewBox="0 0 20 20">
+              <path d="M16.783 10c0-1.049 0.646-1.875 1.617-2.443-0.176-0.584-0.407-1.145-0.692-1.672-1.089 0.285-1.97-0.141-2.711-0.883-0.741-0.74-0.968-1.621-0.683-2.711-0.527-0.285-1.088-0.518-1.672-0.691-0.568 0.97-1.595 1.615-2.642 1.615-1.048 0-2.074-0.645-2.643-1.615-0.585 0.173-1.144 0.406-1.671 0.691 0.285 1.090 0.059 1.971-0.684 2.711-0.74 0.742-1.621 1.168-2.711 0.883-0.285 0.527-0.517 1.088-0.691 1.672 0.97 0.568 1.615 1.394 1.615 2.443 0 1.047-0.645 2.074-1.615 2.643 0.175 0.584 0.406 1.144 0.691 1.672 1.090-0.285 1.971-0.059 2.711 0.682s0.969 1.623 0.684 2.711c0.527 0.285 1.087 0.518 1.672 0.693 0.568-0.973 1.595-1.617 2.643-1.617 1.047 0 2.074 0.645 2.643 1.617 0.584-0.176 1.144-0.408 1.672-0.693-0.285-1.088-0.059-1.969 0.683-2.711 0.741-0.74 1.622-1.166 2.711-0.883 0.285-0.527 0.517-1.086 0.692-1.672-0.973-0.569-1.619-1.395-1.619-2.442zM10 13.652c-2.018 0-3.653-1.635-3.653-3.652 0-2.018 1.636-3.654 3.653-3.654s3.652 1.637 3.652 3.654c0 2.018-1.634 3.652-3.652 3.652z">
+              </path>
+            </svg>
+          </span>
+        </button>
+      </div>
 
       <table>
         <thead>
@@ -39,11 +50,9 @@
               <span id="port" class="tag is-black">#N/A</span>
             </td>
           </tr>
-
           <tr>
             <td colspan="2" class="border-0"></td>
           </tr>
-
           <tr>
             <th colspan="2">Connection Status</th>
           </tr>
@@ -59,12 +68,91 @@
               <span id="database-connection" class="tag is-black">#N/A</span>
             </td>
           </tr>
-
         </tbody>
       </table>
 
     </div>
   </div>
+
+
+  <!-- Settings modal -->
+  <div id="modal" class="modal px-6 is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head p-4">
+        <p class="modal-card-title is-size-6 has-text-weight-bold">Settings</p>
+        <button class="delete" aria-label="close"></button>
+      </header>
+      <section class="modal-card-body">
+
+        <p class="title has-text-grey is-size-6">Server</p>
+
+        <div class="field is-flex">
+          <div class="field-label mr-4">
+            <label class="label">IP</label>
+          </div>
+          <div class="control is-flex-grow-1">
+            <input id="modal-server-ip" class="input is-small" type="text" placeholder="192.168.1.101">
+          </div>
+        </div>
+
+        <div class="field is-flex">
+          <div class="field-label mr-4">
+            <label class="label">Port</label>
+          </div>
+          <div class="control is-flex-grow-1">
+            <input id="modal-server-port" class="input is-small" type="text" placeholder="5000">
+          </div>
+        </div>
+
+        <p class="title has-text-grey is-size-6 mt-5">Database</p>
+
+        <div class="field is-flex">
+          <div class="field-label mr-4">
+            <label class="label">IP</label>
+          </div>
+          <div class="control is-flex-grow-1">
+            <input id="modal-mysql-ip" class="input is-small" type="text" value="localhost" disabled>
+          </div>
+        </div>
+
+        <div class="field is-flex">
+          <div class="field-label mr-4">
+            <label class="label">User</label>
+          </div>
+          <div class="control is-flex-grow-1">
+            <input id="modal-mysql-user" class="input is-small" type="text" placeholder="root">
+          </div>
+        </div>
+
+        <div class="field is-flex">
+          <div class="field-label mr-4">
+            <label class="label">Password</label>
+          </div>
+          <div class="control is-flex-grow-1">
+            <input id="modal-mysql-password" class="input is-small" type="text" placeholder="**********">
+          </div>
+        </div>
+
+        <div class="field is-flex">
+          <div class="field-label mr-4">
+            <label class="label">Database</label>
+          </div>
+          <div class="control is-flex-grow-1">
+            <input id="modal-mysql-database" class="input is-small" type="text" placeholder="production">
+          </div>
+        </div>
+
+        <div class="py-1"></div>
+
+      </section>
+      <footer class="modal-card-foot p-4 is-flex is-justify-content-flex-end">
+        <button class="cancel button is-small">Close</button>
+        <button id="modal-save-button" class="save button is-small is-success">Save</button>
+      </footer>
+    </div>
+  </div>
+  <!-- Settings modal -->
 
   <script src="./renderer.js"></script>
 </body>

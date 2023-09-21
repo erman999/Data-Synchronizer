@@ -113,6 +113,14 @@ async function readConfigFile(event, data) {
   }
 }
 
+// Save file to target location
+async function saveConfigsFile(data) {
+  const filePath = path.join(__dirname, 'configs', 'configs.json');
+  await fs.promises.writeFile(filePath, JSON.stringify(data));
+  console.log("File [configs.json] saved.");
+  return true;
+}
+
 // Connect to database
 async function connectToDatabase() {
   return new Promise(async (resolve, reject) => {
@@ -255,3 +263,16 @@ async function connectToServer() {
 
   });
 }
+
+
+/***** IPC Listeners *****/
+ipcMain.handle('get-configs', (event, data) => {
+  return client;
+});
+
+ipcMain.handle('save-configs', (event, data) => {
+  client.configs = data;
+  saveConfigsFile(data);
+  // Show toast
+  return true;
+});

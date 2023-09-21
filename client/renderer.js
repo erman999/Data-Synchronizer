@@ -4,6 +4,61 @@ let serverIp = document.querySelector('#serverIp');
 let port = document.querySelector('#port');
 let serverConnection = document.querySelector('#server-connection');
 let databaseConnection = document.querySelector('#database-connection');
+let settings = document.querySelector('#settings');
+
+
+/***** Elements - Modal *****/
+let modal = document.querySelector('#modal');
+let modalServerIp = document.querySelector('#modal-server-ip');
+let modalServerPort = document.querySelector('#modal-server-port');
+let modalMysqlIp = document.querySelector('#modal-mysql-ip');
+let modalMysqlUser = document.querySelector('#modal-mysql-user');
+let modalMysqlPassword = document.querySelector('#modal-mysql-password');
+let modalMysqlDatabase= document.querySelector('#modal-mysql-database');
+let modalSaveBtn = document.querySelector('#modal-save-button');
+
+
+/***** Event Listeners *****/
+// Close modal window on various closing activities
+document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .cancel').forEach((el, i) => {
+  // Add elements to click listener
+  el.addEventListener('click', resetModalWindow, false);
+});
+
+// Open modal window and load client configurations to modal window
+settings.addEventListener('click', function() {
+  // Open modal window
+  modal.classList.add('is-active');
+  // Load client configs
+  window.ipcRender.invoke('get-configs', false).then((result) => {
+    console.log(result);
+    modalServerIp.value = result.configs.serverIp;
+    modalServerPort.value = result.configs.port;
+    modalMysqlIp.value = result.configs.mysqlIp;
+    modalMysqlUser.value = result.configs.mysqlUser;
+    modalMysqlPassword.value = result.configs.mysqlPassword;
+    modalMysqlDatabase.value = result.configs.mysqlDatabase;
+  });
+});
+
+// Save user defined configs
+modalSaveBtn.addEventListener('click', function() {
+  // Prepare client configs
+  let configs = {
+    serverIp: modalServerIp.value.trim(),
+    port: modalServerPort.value.trim(),
+    mysqlIp: modalMysqlIp.value.trim(),
+    mysqlUser: modalMysqlUser.value.trim(),
+    mysqlPassword: modalMysqlPassword.value.trim(),
+    mysqlDatabase: modalMysqlDatabase.value.trim(),
+  };
+
+  // Save file
+  window.ipcRender.invoke('save-configs', configs).then((result) => {
+    console.log('save-configs', result);
+  });
+});
+
 
 /***** IPC Listeners *****/
 window.ipcRender.receive('update', (data) => {
@@ -20,3 +75,11 @@ window.ipcRender.receive('update', (data) => {
   data.client.socket.connection ? serverConnection.classList.add('is-success') : serverConnection.classList.add('is-danger');
   data.client.database.connection ? databaseConnection.classList.add('is-success') : databaseConnection.classList.add('is-danger');
 });
+
+
+/***** Functions *****/
+// Reset modal window (usually on close activity)
+function resetModalWindow() {
+  // Close modal
+  modal.classList.remove('is-active');
+}

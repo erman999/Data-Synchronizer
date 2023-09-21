@@ -9,3 +9,20 @@ html, body {
 .border-0 {
   border: 0 !important;
 }
+
+.modal {
+  font-size: 0.9rem;
+}
+
+.modal .modal-card-foot .button {
+  min-width: 4rem;
+}
+
+.field-label {
+  min-width: 5rem;
+}
+
+.modal .title {
+  border-bottom: 1px solid lightgrey;
+  padding-bottom: 0.3rem;
+}

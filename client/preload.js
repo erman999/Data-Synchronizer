@@ -12,7 +12,10 @@ const ipc = {
       'update'
     ],
     // From render to main and back again
-    'sendReceive': []
+    'sendReceive': [
+      'get-configs',
+      'save-configs'
+    ]
   }
 };
 
