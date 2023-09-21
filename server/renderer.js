@@ -263,7 +263,6 @@ window.ipcRender.receive('show-create-table', (data) => {
 
 // Synchronizer received data
 window.ipcRender.receive('synchronizer', (data) => {
-  // console.log(data);
   // Display error message
   if (data.error) {
     toast('danger', data.message);
