@@ -482,7 +482,6 @@ ipcMain.handle('delete-client', async (event, data) => {
 
 // Synchronize client's data with target server database
 ipcMain.on('synchronizer', async (event, machineId) => {
-  console.log("synchronizer", machineId);
   let client = getClientByMachineId(machineId);
 
   // Check client's connections, binding, running statuses
