@@ -280,8 +280,8 @@ window.ipcRender.receive('check-databases', (data) => {
     // Create table row
     let row = `<tr>
     <td><a href="#" class="show-create-table">${table.table}</a></td>
-    <td><span class="tag ${tableMatch ? 'is-success' : 'is-danger'}">${tableMatch ? 'OK' : 'NOK'}</span></td>
-    <td><span class="tag ${columnMatch ? 'is-success' : 'is-danger'}">${columnMatch ? 'OK' : 'NOK'}</span></td>
+    <td><span class="tag ${tableMatch ? 'is-success' : 'is-danger'}">${tableMatch ? 'OK' : 'Error'}</span></td>
+    <td><span class="tag ${columnMatch ? 'is-success' : 'is-danger'}">${columnMatch ? 'OK' : 'Error'}</span></td>
     <td>${table.count}</td>
     <td>${tableMatch ? serverDatabase[tableMatchIndex].count : 0}</td>
     <td>${!counterMatch ? '<span class="tag is-danger">Error</span>' : '<span class="tag is-success">OK</span>' }</td>
