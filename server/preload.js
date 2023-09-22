@@ -24,6 +24,8 @@ const ipc = {
     ],
     // From render to main and back again
     'sendReceive': [
+      'get-configs',
+      'save-configs',
       'get-client',
       'refresh-databases',
       'change-name',

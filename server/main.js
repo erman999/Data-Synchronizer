@@ -112,6 +112,14 @@ async function readConfigFile(event, data) {
 }
 
 // Save file to target location
+async function saveConfigsFile(data) {
+  const filePath = path.join(__dirname, 'configs', 'configs.json');
+  await fs.promises.writeFile(filePath, JSON.stringify(data));
+  console.log("File [configs.json] saved.");
+  return true;
+}
+
+// Save file to target location
 async function saveClientsFile(data) {
   const filePath = path.join(__dirname, 'configs', 'clients.json');
   await fs.promises.writeFile(filePath, JSON.stringify(data));
@@ -399,6 +407,18 @@ io.on('connection', (socket) => {
 
 
 /***** IPC Listeners *****/
+// Send client object to renderer
+ipcMain.handle('get-configs', (event, data) => {
+  return server;
+});
+
+// Save sent configs and return to renderer
+ipcMain.handle('save-configs', (event, data) => {
+  server.configs = data;
+  saveConfigsFile(data);
+  return true;
+});
+
 // Find client and send back to renderer
 ipcMain.handle('get-client', async (event, data) => {
   console.log("get-client:", data);

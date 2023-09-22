@@ -6,8 +6,7 @@ let serverConnection = document.querySelector('#server-connection');
 let databaseConnection = document.querySelector('#database-connection');
 let settings = document.querySelector('#settings');
 
-
-/***** Elements - Modal *****/
+/***** Settings - Modal *****/
 let modal = document.querySelector('#modal');
 let modalServerIp = document.querySelector('#modal-server-ip');
 let modalServerPort = document.querySelector('#modal-server-port');

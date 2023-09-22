@@ -2,9 +2,18 @@
 let serverIp = document.querySelector('#serverIp');
 let port = document.querySelector('#port');
 let database = document.querySelector('#database');
+let settings = document.querySelector('#settings');
 
+/***** Settings - Modal *****/
+let modalSettings = document.querySelector('#modal-settings');
+let modalServerIp = document.querySelector('#modal-server-ip');
+let modalServerPort = document.querySelector('#modal-server-port');
+let modalMysqlIp = document.querySelector('#modal-mysql-ip');
+let modalMysqlUser = document.querySelector('#modal-mysql-user');
+let modalMysqlPassword = document.querySelector('#modal-mysql-password');
+let modalSaveBtn = document.querySelector('#modal-save-button');
 
-/***** Elements - Modal *****/
+/***** Client Configs - Modal *****/
 let modal = document.querySelector('#modal');
 let modalMachineId = document.querySelector('#modal-machineId');
 let modalName = document.querySelector('#modal-name');
@@ -21,12 +30,48 @@ let modalDeleteBtn = document.querySelector('#modal-delete-button');
 let modalConfirmBtn = document.querySelector('#modal-confirm-button');
 let modalDeleteHelp = document.querySelector('#modal-delete-help');
 
+/***** Constants *****/
+const TIMEOUT_SHORT = 3000;
+const TIMEOUT_LONG = 60000;
+
 
 /***** Event listeners *****/
 // Close modal window on various closing activities
 document.querySelectorAll('.modal .modal-background, .modal .delete, .modal .cancel').forEach((el, i) => {
   // Add elements to click listener
   el.addEventListener('click', resetModalWindow, false);
+});
+
+// Open modal window and load client configurations to modal window
+settings.addEventListener('click', function() {
+  // Open modal window
+  modalSettings.classList.add('is-active');
+  // Load client configs
+  window.ipcRender.invoke('get-configs', false).then((result) => {
+    console.log(result);
+    modalServerIp.value = result.socket.serverIp;
+    modalServerPort.value = result.configs.port;
+    modalMysqlIp.value = result.configs.mysqlIp;
+    modalMysqlUser.value = result.configs.mysqlUser;
+    modalMysqlPassword.value = result.configs.mysqlPassword;
+  });
+});
+
+// Save user defined configs
+modalSaveBtn.addEventListener('click', function() {
+  // Prepare client configs
+  let configs = {
+    port: modalServerPort.value.trim(),
+    mysqlIp: modalMysqlIp.value.trim(),
+    mysqlUser: modalMysqlUser.value.trim(),
+    mysqlPassword: modalMysqlPassword.value.trim(),
+  };
+
+  // Save file
+  window.ipcRender.invoke('save-configs', configs).then((result) => {
+    console.log('save-configs', result);
+    toast('success', 'Configs successfully saved. Restart application to connect with new configurations.');
+  });
 });
 
 // Change client display name
@@ -270,7 +315,7 @@ window.ipcRender.receive('synchronizer', (data) => {
     return;
   }
   // Synchronizer timeout timer
-  let timer = 3000;
+  let timer = TIMEOUT_SHORT;
   // Show progress
   if (data.client.binding.hasOwnProperty('preserve')) {
     // Shorthand variables
@@ -279,7 +324,7 @@ window.ipcRender.receive('synchronizer', (data) => {
     // Calculate percentage
     let percent = Math.floor(serverCounter / clientCounter * 100);
     // Extend loop timer if synchronization is 100
-    if (parseInt(percent) == 100) timer = 60000;
+    if (parseInt(percent) == 100) timer = TIMEOUT_LONG;
     // Update client's sync progress
     percentStyler('is-success', data.client.machineId, percent + '%');
   }
@@ -461,6 +506,7 @@ function modalDatabaseHelper(text, color) {
 function resetModalWindow() {
   // Close modal
   modal.classList.remove('is-active');
+  modalSettings.classList.remove('is-active');
   // Enable buttons
   modalServerDatabases.disabled = false;
   modalBindBtn.disabled = true;

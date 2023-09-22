@@ -57,6 +57,7 @@ const nodeMachineId = require('node-machine-id');
 // Global variables
 let socket = {};
 let promisePool = {};
+const ROW_LIMIT = 100;
 
 // Store client variables
 let client = {
@@ -255,7 +256,7 @@ async function connectToServer() {
     // Listen synchronizer, evaluate and find missing data, emit prepared data to server
     socket.on("synchronizer", async (client) => {
       for (let table of client.binding.preserve.collection) {
-        let insertData = await sqlQuery(`SELECT * FROM \`${client.configs.mysqlDatabase}\`.\`${table.table}\` LIMIT 100 OFFSET ${table.serverRowCounter};`);
+        let insertData = await sqlQuery(`SELECT * FROM \`${client.configs.mysqlDatabase}\`.\`${table.table}\` LIMIT ${ROW_LIMIT} OFFSET ${table.serverRowCounter};`);
         if (insertData.result) table.insertData = insertData.response;
       }
       socket.emit('synchronizer', client);
@@ -266,13 +267,14 @@ async function connectToServer() {
 
 
 /***** IPC Listeners *****/
+// Send client object to renderer
 ipcMain.handle('get-configs', (event, data) => {
   return client;
 });
 
+// Save sent configs and return to renderer
 ipcMain.handle('save-configs', (event, data) => {
   client.configs = data;
   saveConfigsFile(data);
-  // Show toast
   return true;
 });
