@@ -8,5 +8,5 @@ Data Synchronizer is a Node.js Electron application that synchronizes MySQL/Mari
 </br>
 <p align="center"><img src="https://raw.githubusercontent.com/erman999/Data-Synchronizer/master/screenshots/client.jpg" width="600"></p>
 <p align="center"><img src="https://raw.githubusercontent.com/erman999/Data-Synchronizer/master/screenshots/server.jpg" width="600"></p>
-<p align="center"><img src="https://raw.githubusercontent.com/erman999/Data-Synchronizer/master/screenshots/configs.jpg" width="600"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/erman999/Data-Synchronizer/master/screenshots/client-configs.jpg" width="600"></p>
 </br>
