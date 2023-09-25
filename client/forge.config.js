@@ -1,7 +1,3 @@
-// Packager configs
-// https://electron.github.io/electron-packager/main/interfaces/electronpackager.options.html
-// Desktop Shortcutname -> name
-
 module.exports = {
   packagerConfig: {
     asar: true,
