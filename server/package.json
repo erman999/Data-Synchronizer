@@ -1,7 +1,7 @@
 {
   "name": "Data-Synchronizer-Server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Data Synchronizer is a Node.js Electron application that synchronizes MySQL/MariaDB data from client to server using Socket.io for data transfer.",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
