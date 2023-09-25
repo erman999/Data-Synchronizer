@@ -71,10 +71,10 @@ let server = {
 // Start application
 async function startApp() {
   // Read config file
-  const configs = await readConfigFile(null, 'configs.json');
+  const configs = await readFileJson(['configs', 'configs.json']);
   server.configs = configs;
   // Read clients file
-  const clients = await readConfigFile(null, 'clients.json');
+  const clients = await readFileJson(['configs', 'clients.json']);
   server.clients = clients;
   // Update registered clients connection status
   if (server.clients.length > 0) {
@@ -99,11 +99,36 @@ async function startApp() {
   connectionChecker();
 }
 
-// Read file in 'configs' folder
-async function readConfigFile(event, data) {
-  const filePath = path.join(__dirname, 'configs', data);
+// Check file/folder existence
+async function fileExists(path) {
+  return fs.promises.stat(path).then(() => true, () => false);
+}
+
+// Read file as json
+async function readFileJson(pathArr) {
+  // Warning: Electron-Forge changes application working directory as 'resources'
+
+  // If '__dirname' added to 'path.join' new path will be like this
+  // "C:\Users\...\Client-win32-x64\resources\app.asar\configs\configs.json"
+
+  // Calling extraResource: ['./configs'] copies 'configs' folder into resources folder
+  // In order to avoid  check both development and production paths
+
+  // Define development and Electron-Forge folder structure
+  const pathDevelopment = path.join(...pathArr);
+  const pathProduction = path.join('resources', ...pathArr);
+
+  // Check file existence
+  const pathCheckerDev = await fileExists(pathDevelopment);
+  const pathCheckerProd = await fileExists(pathProduction);
+
+  // If file is not existed in both paths return false
+  if (!pathCheckerDev && !pathCheckerProd) return false;
+  // Assign real path
+  const realPath = pathCheckerDev ? pathDevelopment : pathProduction;
+  // Read file
   try {
-    const contents = await fs.promises.readFile(filePath, { encoding: 'utf8' });
+    const contents = await fs.promises.readFile(realPath, { encoding: 'utf8' });
     return JSON.parse(contents.trim());
   } catch (err) {
     console.error(err.message);
@@ -111,20 +136,29 @@ async function readConfigFile(event, data) {
   }
 }
 
-// Save file to target location
-async function saveConfigsFile(data) {
-  const filePath = path.join(__dirname, 'configs', 'configs.json');
-  await fs.promises.writeFile(filePath, JSON.stringify(data));
-  console.log("File [configs.json] saved.");
-  return true;
-}
+// Write file as json
+async function writeFileJson(pathArr, data) {
+  // Handle Electron-Forge folder structure
+  const pathDevelopment = path.join(...pathArr);
+  const pathProduction = path.join('resources', ...pathArr);
 
-// Save file to target location
-async function saveClientsFile(data) {
-  const filePath = path.join(__dirname, 'configs', 'clients.json');
-  await fs.promises.writeFile(filePath, JSON.stringify(data));
-  console.log("File [clients.json] saved.");
-  return true;
+  // Check file existence
+  const pathCheckerDev = await fileExists(pathDevelopment);
+  const pathCheckerProd = await fileExists(pathProduction);
+
+  // If file is not existed in both paths return false
+  if (!pathCheckerDev && !pathCheckerProd) return false;
+  // Assign real path
+  const realPath = pathCheckerDev ? pathDevelopment : pathProduction;
+  // Write file
+  try {
+    await fs.promises.writeFile(realPath, JSON.stringify(data));
+    console.log(`File [${realPath}] saved.`);
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
 }
 
 // Connect to database
@@ -351,7 +385,7 @@ io.on('connection', (socket) => {
       // Add this client to clients
       server.clients.push(client);
       // Save clients file
-      saveClientsFile(server.clients);
+      writeFileJson(['configs', 'clients.json'], server.clients);
       // Tell user register/setup required.
       mainWindow.webContents.send('new-client', client);
     } else {
@@ -362,7 +396,7 @@ io.on('connection', (socket) => {
       // Update clients on server
       server.clients[clientIndex] = client;
       // Save clients
-      saveClientsFile(server.clients);
+      writeFileJson(['configs', 'clients.json'], server.clients);
       // Update renderer
       mainWindow.webContents.send('registered-client', client);
     }
@@ -415,7 +449,7 @@ ipcMain.handle('get-configs', (event, data) => {
 // Save sent configs and return to renderer
 ipcMain.handle('save-configs', (event, data) => {
   server.configs = data;
-  saveConfigsFile(data);
+  writeFileJson(['configs', 'configs.json'], data);
   return true;
 });
 
@@ -431,7 +465,7 @@ ipcMain.handle('change-name', async (event, data) => {
   let client = getClientByMachineId(data.machineId);
   if (client === false) return {error: true, message: 'Client not found!'};
   client.name = data.name;
-  saveClientsFile(server.clients);
+  writeFileJson(['configs', 'clients.json'], server.clients);
   return {error: false, message: 'Name changed'};
 });
 
@@ -477,7 +511,7 @@ ipcMain.handle('save-binding-details', async (event, data) => {
   let client = getClientByMachineId(data.machineId);
   if (client === false) return {error: true, message: 'Client not found!'};
   client.binding = data.binding;
-  saveClientsFile(server.clients);
+  writeFileJson(['configs', 'clients.json'], server.clients);
   return {error: false, message: `Client binded to database ${data.binding.database}`};
 });
 
@@ -495,7 +529,7 @@ ipcMain.handle('delete-client', async (event, data) => {
     return {error: true, message: 'Client not found!'};
   } else {
     server.clients.splice(clientIndex, 1);
-    saveClientsFile(server.clients);
+    writeFileJson(['configs', 'clients.json'], server.clients);
     return {error: false, message: 'Client deleted'};
   }
 });

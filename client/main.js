@@ -70,11 +70,12 @@ let client = {
 };
 
 
+
 /***** Functions *****/
 // Start application
 async function startApp() {
   // Read config file
-  const configs = await readConfigFile(null, 'configs.json');
+  const configs = await readFileJson(['configs', 'configs.json']);
   client.configs = configs;
   // Try to connect database
   const isDatabaseConnected = await connectToDatabase();
@@ -83,6 +84,68 @@ async function startApp() {
   const isServerConnected = await connectToServer();
   // Start database connection checker loop
   connectionChecker();
+}
+
+// Check file/folder existence
+async function fileExists(path) {
+  return fs.promises.stat(path).then(() => true, () => false);
+}
+
+// Read file as json
+async function readFileJson(pathArr) {
+  // Warning: Electron-Forge changes application working directory as 'resources'
+
+  // If '__dirname' added to 'path.join' new path will be like this
+  // "C:\Users\...\Client-win32-x64\resources\app.asar\configs\configs.json"
+
+  // Calling extraResource: ['./configs'] copies 'configs' folder into resources folder
+  // In order to avoid  check both development and production paths
+
+  // Define development and Electron-Forge folder structure
+  const pathDevelopment = path.join(...pathArr);
+  const pathProduction = path.join('resources', ...pathArr);
+
+  // Check file existence
+  const pathCheckerDev = await fileExists(pathDevelopment);
+  const pathCheckerProd = await fileExists(pathProduction);
+
+  // If file is not existed in both paths return false
+  if (!pathCheckerDev && !pathCheckerProd) return false;
+  // Assign real path
+  const realPath = pathCheckerDev ? pathDevelopment : pathProduction;
+  // Read file
+  try {
+    const contents = await fs.promises.readFile(realPath, { encoding: 'utf8' });
+    return JSON.parse(contents.trim());
+  } catch (err) {
+    console.error(err.message);
+    return false;
+  }
+}
+
+// Write file as json
+async function writeFileJson(pathArr, data) {
+  // Handle Electron-Forge folder structure
+  const pathDevelopment = path.join(...pathArr);
+  const pathProduction = path.join('resources', ...pathArr);
+
+  // Check file existence
+  const pathCheckerDev = await fileExists(pathDevelopment);
+  const pathCheckerProd = await fileExists(pathProduction);
+
+  // If file is not existed in both paths return false
+  if (!pathCheckerDev && !pathCheckerProd) return false;
+  // Assign real path
+  const realPath = pathCheckerDev ? pathDevelopment : pathProduction;
+  // Write file
+  try {
+    await fs.promises.writeFile(realPath, JSON.stringify(data));
+    console.log(`File [${realPath}] saved.`);
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
 }
 
 // Get external IP adresses (IPv4 & IPv6)
@@ -101,26 +164,6 @@ function getIpAdresses() {
     });
   });
   return ip;
-}
-
-// Read file in 'configs' folder
-async function readConfigFile(event, data) {
-  const filePath = path.join(__dirname, 'configs', data);
-  try {
-    const contents = await fs.promises.readFile(filePath, { encoding: 'utf8' });
-    return JSON.parse(contents.trim());
-  } catch (err) {
-    console.error(err.message);
-    return false;
-  }
-}
-
-// Save file to target location
-async function saveConfigsFile(data) {
-  const filePath = path.join(__dirname, 'configs', 'configs.json');
-  await fs.promises.writeFile(filePath, JSON.stringify(data));
-  console.log("File [configs.json] saved.");
-  return true;
 }
 
 // Connect to database
@@ -143,7 +186,6 @@ async function connectToDatabase() {
 // Check database connection in given time interval
 function connectionChecker() {
   setInterval(async() => {
-
     // Database connection (Check connection on start and connect if not established)
     if (client.database.connection !== true) {
       const isDatabaseConnected = await connectToDatabase();
@@ -276,6 +318,6 @@ ipcMain.handle('get-configs', (event, data) => {
 // Save sent configs and return to renderer
 ipcMain.handle('save-configs', (event, data) => {
   client.configs = data;
-  saveConfigsFile(data);
+  writeFileJson(['configs', 'configs.json'], data);
   return true;
 });

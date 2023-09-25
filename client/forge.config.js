@@ -8,7 +8,12 @@ module.exports = {
     name: 'Data Synchronizer - Client',
     productName: 'Data Synchronizer - Client',
     executableName: 'Data Synchronizer - Client',
-    ignore: 'configs'
+    ignore: [
+      './configs'
+    ],
+    extraResource: [
+      './configs'
+    ]
   },
   rebuildConfig: {},
   makers: [
