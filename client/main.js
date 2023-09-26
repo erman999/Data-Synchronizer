@@ -19,8 +19,7 @@ function createWindow () {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
-    },
-    icon: path.join(__dirname, 'icons', 'icon-32.ico')
+    }
   });
   // Load main HTML file
   mainWindow.loadFile('index.html');

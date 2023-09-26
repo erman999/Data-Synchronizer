@@ -2,6 +2,7 @@
 // Require electron libraries
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+if (require('electron-squirrel-startup')) app.quit();
 
 // Define mainWindow as global variable
 let mainWindow;
