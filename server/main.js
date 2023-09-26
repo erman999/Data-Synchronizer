@@ -23,7 +23,7 @@ function createWindow () {
   // Load main HTML file
   mainWindow.loadFile('index.html');
   // Open the DevTools (optional)
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 }
 
 // Start app

@@ -1,9 +1,9 @@
 module.exports = {
   packagerConfig: {
     asar: true,
-    name: 'Data Synchronizer - Client',
-    productName: 'Data Synchronizer - Client',
-    executableName: 'Data Synchronizer - Client',
+    name: 'Data Synchronizer - Server',
+    productName: 'Data Synchronizer - Server',
+    executableName: 'Data Synchronizer - Server',
     ignore: ['./configs'],
     extraResource: ['./configs'],
     icon: './img/icons/icon.ico'
