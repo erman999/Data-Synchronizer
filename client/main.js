@@ -19,7 +19,8 @@ function createWindow () {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
-    }
+    },
+    icon: path.join(__dirname, 'icons', 'icon-32.ico')
   });
   // Load main HTML file
   mainWindow.loadFile('index.html');
@@ -74,6 +75,14 @@ let client = {
 /***** Functions *****/
 // Start application
 async function startApp() {
+  console.log("###################");
+  let myPath = path.join(__dirname, 'icons', 'icon.ico');
+  // let myPath = './icons/icon.ico';
+  console.log(myPath);
+  let result = await fileExists(myPath);
+  console.log(result);
+  console.log("###################");
+
   // Read config file
   const configs = await readFileJson(['configs', 'configs.json']);
   client.configs = configs;

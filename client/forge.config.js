@@ -4,18 +4,16 @@ module.exports = {
     name: 'Data Synchronizer - Client',
     productName: 'Data Synchronizer - Client',
     executableName: 'Data Synchronizer - Client',
-    ignore: [
-      './configs'
-    ],
-    extraResource: [
-      './configs'
-    ]
+    ignore: ['./configs'],
+    extraResource: ['./configs']
   },
   rebuildConfig: {},
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        setupIcon: './icons/icon-64.ico'
+      },
     },
     {
       name: '@electron-forge/maker-zip',

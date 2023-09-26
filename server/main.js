@@ -554,7 +554,7 @@ ipcMain.on('synchronizer', async (event, machineId) => {
     let databases = {clientDatabase: clientDatabase, serverDatabase: serverDatabase};
     let checkResult = databaseChecker(databases);
     let preserve = {collection: checkResult.collection, totalCheckResult: checkResult.totalCheckResult, totalClientRowCounter: checkResult.totalClientRowCounter, totalServerRowCounter: checkResult.totalServerRowCounter};
-    // Diagnosis to client object
+    // Diagnosis client object
     client.binding.preserve = preserve;
     client.running = true;
     // Send client object to client (client will add data and send this package back to socket channel)
