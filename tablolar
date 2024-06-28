@@ -1,0 +1,65 @@
+CREATE TABLE `credentials` (
+ `credentialId` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+ `machineId` smallint(5) unsigned NOT NULL,
+ `mysqlHost` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mysqlUser` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mysqlPassword` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mysqlPort` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mssqlHost` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mssqlUser` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mssqlPassword` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `mssqlPort` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (`credentialId`)
+)
+
+
+CREATE TABLE `machines` (
+ `machineId` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+ `name` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci NOT NULL,
+ `ip` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci NOT NULL,
+ `totalSync` decimal(5,1) unsigned NOT NULL,
+ `appVersion` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+ `platform` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `arch` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `lts` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `electron` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `node` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `chrome` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (`machineId`)
+)
+
+
+CREATE TABLE `sync_mysql` (
+ `syncId` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+ `machineId` smallint(5) unsigned NOT NULL,
+ `clientDatabase` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `clientTable` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `serverDatabase` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `serverTable` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `primaryCol` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `timestampCol` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `clientLastRecord` int(10) unsigned NOT NULL,
+ `serverLastRecord` int(10) unsigned NOT NULL,
+ `numRowsToCopy` smallint(5) unsigned NOT NULL,
+ `cycleDelay` smallint(5) unsigned NOT NULL,
+ `isVisible` tinyint(1) unsigned NOT NULL,
+ `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (`syncId`)
+)
+
+
+CREATE TABLE `users` (
+ `userId` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+ `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `password` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+ `auth` tinyint(3) unsigned NOT NULL,
+ `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (`userId`)
+)
